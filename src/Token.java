@@ -1,6 +1,6 @@
-public class Token {
-    public final TokenType type;
-    public final String value;
+class Token {
+    private TokenType type;
+    private String value;
 
     public Token(TokenType type, String value) {
         this.type = type;
@@ -9,6 +9,6 @@ public class Token {
 
     @Override
     public String toString() {
-        return type + "(" + value + ")";
+        return "Token{" + "type=" + type + ", value='" + value + "'}";
     }
 }

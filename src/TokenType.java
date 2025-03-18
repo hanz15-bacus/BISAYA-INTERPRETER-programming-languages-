@@ -1,20 +1,20 @@
 public enum TokenType {
-    SAGDII,        // LET
-    ILHANAN,     // IDENTIFIER
-    GIDAGHANON, // NUMBER (alternative: IHAP)
+    //data types
+    NUMERO, // NUMBER (alternative: IHAP)
+    TINUOD, //represents true or false
+    LETRA, // single character symbol
+    TIPIK, //decimal
+
+    //arithmetic op
+    OPERATOR,
+    parenthesis,
+    multiplication, division, modulo,
+    addition, subtraction,
+    greater_than, lesser_than,
+    greater_than_or_equal_to, lesser_than_or_equal_to,
+    equal, not_equal
 
 
 
-    PAREHAS,     // EQUAL (=)
-    DUGANG,      // PLUS (+)
-    KUHA, //minus
-    PADAGHAN, //multiply
-    BAHIN, //divide
 
-
-    IMPRINTA,    // PRINT
-    TULDOK_KUWIT, // SEMICOLON (;)
-    ABLI_PANAKLONG,       // LEFT_PAREN OR OPEN (()
-    SIRADO_PANAKLONG,  // RIGHT_PAREN OR CLOSE  ())
-    KINALASAN          // EOF (End of File)
 }

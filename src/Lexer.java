@@ -1,81 +1,115 @@
 import java.util.*;
+import java.io.*;
+import java.util.regex.*;
 
 public class Lexer {
-    private final String input;
-    private int position = 0;
-    private static final Map<String, TokenType> KEYWORDS = Map.of(
-            "sagdii", TokenType.SAGDII,
-            "imprinta", TokenType.IMPRINTA
-    );
+    private String input;
+    private int position;
+    private List<Token> tokens;
 
     public Lexer(String input) {
         this.input = input;
+        this.position = 0;
+        this.tokens = new ArrayList<>();
     }
 
     public List<Token> tokenize() {
-        List<Token> tokens = new ArrayList<>();
-
         while (position < input.length()) {
-            char current = input.charAt(position);
+            char currentChar = input.charAt(position);
 
-            if (Character.isWhitespace(current)) {
-                position++; // Skip whitespace
-            } else if (Character.isDigit(current)) {
-                tokens.add(lexNumber());
-            } else if (Character.isLetter(current)) {
-                tokens.add(lexIdentifier());
-            } else if (current == '=') {
-                tokens.add(new Token(TokenType.PAREHAS, "="));
+            if (Character.isWhitespace(currentChar)) {
                 position++;
-            } else if (current == '+') {
-                tokens.add(new Token(TokenType.DUGANG, "+"));
-                position++;
-            } else if (current == '-') {
-                tokens.add(new Token(TokenType.KUHA, "-"));
-                position++;
-            }else if (current == '*') {
-                tokens.add(new Token(TokenType.PADAGHAN, "*"));
-                position++;
-            }else if (current == '/') {
-                tokens.add(new Token(TokenType.BAHIN, "/"));
-                position++;
+                continue;
             }
-            else if (current == ';') {
-                tokens.add(new Token(TokenType.TULDOK_KUWIT, ";"));
-                position++;
-            } else if (current == '(') {
-                tokens.add(new Token(TokenType.ABLI_PANAKLONG, "("));
-                position++;
-            } else if (current == ')') {
-                tokens.add(new Token(TokenType.SIRADO_PANAKLONG, ")"));
-                position++;
-            } else {
-                throw new RuntimeException("Unexpected character: " + current);
+
+            if (Character.isDigit(currentChar)) {
+                String number = extractNumber();
+                if (position < input.length() && input.charAt(position) == '.') {
+                    position++;
+                    number += "." + extractNumber();
+                    tokens.add(new Token(TokenType.TIPIK, number));
+                } else {
+                    tokens.add(new Token(TokenType.NUMERO, number));
+                }
+                continue;
             }
+
+            if (currentChar == '"' || currentChar == '\'') {
+                tokens.add(new Token(TokenType.LETRA, extractCharacter()));
+                continue;
+            }
+
+            if (lookahead("OO")) {
+                tokens.add(new Token(TokenType.TINUOD, "OO"));
+                position += 2;
+                continue;
+            }
+
+            if (lookahead("DILI")) {
+                tokens.add(new Token(TokenType.TINUOD, "DILI"));
+                position += 4;
+                continue;
+            }
+
+            if ("()+-*/%<>=".indexOf(currentChar) != -1) {
+                tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
+                position++;
+                continue;
+            }
+
+            if (lookahead(">=") || lookahead("<=") || lookahead("==") || lookahead("<>") ) {
+                tokens.add(new Token(TokenType.OPERATOR, input.substring(position, position + 2)));
+                position += 2;
+                continue;
+            }
+
+            throw new RuntimeException("Unexpected character: " + currentChar);
         }
-
-        tokens.add(new Token(TokenType.KINALASAN, ""));
         return tokens;
     }
 
-    private Token lexNumber() {
+    private String extractNumber() {
         StringBuilder number = new StringBuilder();
         while (position < input.length() && Character.isDigit(input.charAt(position))) {
             number.append(input.charAt(position));
             position++;
         }
-        return new Token(TokenType.GIDAGHANON, number.toString());
+        return number.toString();
     }
 
-    private Token lexIdentifier() {
-        StringBuilder identifier = new StringBuilder();
-        while (position < input.length() && Character.isLetter(input.charAt(position))) {
-            identifier.append(input.charAt(position));
+    private String extractCharacter() {
+        char quoteType = input.charAt(position);
+        position++;
+        StringBuilder character = new StringBuilder();
+        while (position < input.length() && input.charAt(position) != quoteType) {
+            character.append(input.charAt(position));
             position++;
         }
+        position++; // Move past the closing quote
+        return character.toString();
+    }
 
-        String text = identifier.toString();
-        TokenType type = KEYWORDS.getOrDefault(text, TokenType.ILHANAN);
-        return new Token(type, text);
+    private boolean lookahead(String keyword) {
+        return input.startsWith(keyword, position);
+    }
+
+    public static void main(String[] args) {
+        try {
+            File file = new File("test.txt");
+            Scanner scanner = new Scanner(file);
+            StringBuilder code = new StringBuilder();
+            while (scanner.hasNextLine()) {
+                code.append(scanner.nextLine()).append(" ");
+            }
+            scanner.close();
+
+            Lexer lexer = new Lexer(code.toString());
+            List<Token> tokens = lexer.tokenize();
+            for (Token token : tokens) {
+                System.out.println(token);
+            }
+        } catch (FileNotFoundException e) {
+            System.err.println("File not found: " + e.getMessage());
+        }
     }
 }
