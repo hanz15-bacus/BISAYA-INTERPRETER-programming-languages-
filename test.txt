@@ -1,15 +1,12 @@
-123
-'c'
-OO
-DILI
-45.67
-789
-'A'
-12.34
-( 5 + 3 ) * 2 / 4 % 1
-10 > 5
-6 < 9
-7 >= 7
-8 <= 10
-4 == 4
-3 <> 2
+-- This is a comment
+SUGOD
+MUGNA NUMERO x = 10
+MUGNA TIPIK y = 5.5
+MUGNA LETRA c = 'A'
+MUGNA TINUOD t = OO
+x = x + 2
+y = y * 3
+t = DILI
+IPAKITA: x & y & $ & c & t
+IPAKITA: "hello world"
+KATAPUSAN

@@ -22,6 +22,35 @@ public class Lexer {
                 continue;
             }
 
+            if (currentChar == '-' && lookahead("--")) {
+                skipComment();
+                continue;
+            }
+
+            if (lookahead("SUGOD")) {
+                tokens.add(new Token(TokenType.KEYWORD, "SUGOD"));
+                position += 5;
+                continue;
+            }
+
+            if (lookahead("KATAPUSAN")) {
+                tokens.add(new Token(TokenType.KEYWORD, "KATAPUSAN"));
+                position += 9;
+                continue;
+            }
+
+            if (lookahead("MUGNA")) {
+                tokens.add(new Token(TokenType.KEYWORD, "MUGNA"));
+                position += 5;
+                continue;
+            }
+
+            if (Character.isLetter(currentChar) || currentChar == '_') {
+                String identifier = extractIdentifier();
+                tokens.add(new Token(TokenType.IDENTIFIER, identifier));
+                continue;
+            }
+
             if (Character.isDigit(currentChar)) {
                 String number = extractNumber();
                 if (position < input.length() && input.charAt(position) == '.') {
@@ -39,33 +68,48 @@ public class Lexer {
                 continue;
             }
 
-            if (lookahead("OO")) {
-                tokens.add(new Token(TokenType.TINUOD, "OO"));
-                position += 2;
-                continue;
-            }
-
-            if (lookahead("DILI")) {
-                tokens.add(new Token(TokenType.TINUOD, "DILI"));
-                position += 4;
-                continue;
-            }
-
-            if ("()+-*/%<>=".indexOf(currentChar) != -1) {
+            if ("()+-*/%<>=$&[]".indexOf(currentChar) != -1) {
                 tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;
             }
 
-            if (lookahead(">=") || lookahead("<=") || lookahead("==") || lookahead("<>") ) {
+            if (lookahead(">=") || lookahead("<=") || lookahead("==") || lookahead("<>")) {
                 tokens.add(new Token(TokenType.OPERATOR, input.substring(position, position + 2)));
                 position += 2;
+                continue;
+            }
+
+            // Handle the colon character and compound operator :=
+            if (currentChar == ':') {
+                if (position + 1 < input.length() && input.charAt(position + 1) == '=') {
+                    tokens.add(new Token(TokenType.OPERATOR, ":="));
+                    position += 2; // Move past :=
+                } else {
+                    tokens.add(new Token(TokenType.COLON, ":")); // Handle standalone colon
+                    position++;
+                }
                 continue;
             }
 
             throw new RuntimeException("Unexpected character: " + currentChar);
         }
         return tokens;
+    }
+
+    private String extractIdentifier() {
+        StringBuilder identifier = new StringBuilder();
+        while (position < input.length() && (Character.isLetterOrDigit(input.charAt(position)) || input.charAt(position) == '_')) {
+            identifier.append(input.charAt(position));
+            position++;
+        }
+        return identifier.toString();
+    }
+
+    private void skipComment() {
+        while (position < input.length() && input.charAt(position) != '\n') {
+            position++;
+        }
     }
 
     private String extractNumber() {
@@ -91,25 +135,5 @@ public class Lexer {
 
     private boolean lookahead(String keyword) {
         return input.startsWith(keyword, position);
-    }
-
-    public static void main(String[] args) {
-        try {
-            File file = new File("test.txt");
-            Scanner scanner = new Scanner(file);
-            StringBuilder code = new StringBuilder();
-            while (scanner.hasNextLine()) {
-                code.append(scanner.nextLine()).append(" ");
-            }
-            scanner.close();
-
-            Lexer lexer = new Lexer(code.toString());
-            List<Token> tokens = lexer.tokenize();
-            for (Token token : tokens) {
-                System.out.println(token);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
-        }
     }
 }
