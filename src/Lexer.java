@@ -44,6 +44,11 @@ public class Lexer {
                 position += 5;
                 continue;
             }
+            if (lookahead("OO") || lookahead("DILI")) {
+                tokens.add(new Token(TokenType.TINUOD, input.substring(position, position + (lookahead("OO") ? 2 : 4))));
+                position += lookahead("OO") ? 2 : 4;
+                continue;
+            }
 
             if (Character.isLetter(currentChar) || currentChar == '_') {
                 String identifier = extractIdentifier();

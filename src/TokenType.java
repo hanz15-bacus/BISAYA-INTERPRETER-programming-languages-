@@ -8,14 +8,15 @@ public enum TokenType {
 
     //arithmetic op
     OPERATOR,
+    /*parenthesis,
+   multiplication, division, modulo,
+   addition, subtraction,
+   greater_than, lesser_than,
+   greater_than_or_equal_to, lesser_than_or_equal_to,
+   equal, not_equal
+   */
     KEYWORD,
     IDENTIFIER,
     COLON,
-    /*parenthesis,
-    multiplication, division, modulo,
-    addition, subtraction,
-    greater_than, lesser_than,
-    greater_than_or_equal_to, lesser_than_or_equal_to,
-    equal, not_equal
-    */
+
 }

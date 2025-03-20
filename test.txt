@@ -8,5 +8,4 @@ x = x + 2
 y = y * 3
 t = DILI
 IPAKITA: x & y & $ & c & t
-IPAKITA: "hello world"
 KATAPUSAN
