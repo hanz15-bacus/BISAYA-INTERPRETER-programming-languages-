@@ -11,12 +11,20 @@ public class Main {
             // Read the entire content of the file
             String input = Files.readString(Paths.get(fileName));
 
+            // Run Lexer
             Lexer lexer = new Lexer(input);
             List<Token> tokens = lexer.tokenize();
 
+            // Print tokens for debugging
+            System.out.println("Tokens:");
             for (Token token : tokens) {
                 System.out.println(token);
             }
+
+            // Run Parser and execute the code
+            System.out.println("\nExecuting Bisaya++ Code:\n");
+            Parser parser = new Parser(tokens);
+            parser.parse();
 
         } catch (IOException e) {
             System.out.println("Error reading file: " + e.getMessage());

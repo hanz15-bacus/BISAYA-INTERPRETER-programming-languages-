@@ -8,7 +8,10 @@ public class Lexer {
     private List<Token> tokens;
 
     public Lexer(String input) {
-        this.input = input;
+        this.input = input.replace("’", "'")
+                .replace("‘", "'")
+                .replace("“", "\"")
+                .replace("”", "\"");
         this.position = 0;
         this.tokens = new ArrayList<>();
     }
@@ -16,6 +19,11 @@ public class Lexer {
     public List<Token> tokenize() {
         while (position < input.length()) {
             char currentChar = input.charAt(position);
+
+            if ("’‘“”".indexOf(currentChar) != -1) {
+                position++;
+                continue;
+            }
 
             if (Character.isWhitespace(currentChar)) {
                 position++;
@@ -44,8 +52,15 @@ public class Lexer {
                 position += 5;
                 continue;
             }
+
+            if (lookahead("IPAKITA")) {
+                tokens.add(new Token(TokenType.KEYWORD, "IPAKITA"));
+                position += 7;
+                continue;
+            }
+
             if (lookahead("OO") || lookahead("DILI")) {
-                tokens.add(new Token(TokenType.TINUOD, input.substring(position, position + (lookahead("OO") ? 2 : 4))));
+                tokens.add(new Token(TokenType.TINUOD, lookahead("OO") ? "OO" : "DILI"));
                 position += lookahead("OO") ? 2 : 4;
                 continue;
             }
@@ -73,25 +88,24 @@ public class Lexer {
                 continue;
             }
 
-            if ("()+-*/%<>=$&[]".indexOf(currentChar) != -1) {
-                tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
+            if ("()+-*/%<>=$&[]#,".indexOf(currentChar) != -1) {
+                tokens.add(new Token(currentChar == ',' ? TokenType.COMMA : TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;
             }
 
-            if (lookahead(">=") || lookahead("<=") || lookahead("==") || lookahead("<>")) {
+            if (lookahead(">=") || lookahead("<=") || lookahead("==") || lookahead("<>") || lookahead("&")) {
                 tokens.add(new Token(TokenType.OPERATOR, input.substring(position, position + 2)));
                 position += 2;
                 continue;
             }
 
-            // Handle the colon character and compound operator :=
             if (currentChar == ':') {
                 if (position + 1 < input.length() && input.charAt(position + 1) == '=') {
                     tokens.add(new Token(TokenType.OPERATOR, ":="));
-                    position += 2; // Move past :=
+                    position += 2;
                 } else {
-                    tokens.add(new Token(TokenType.COLON, ":")); // Handle standalone colon
+                    tokens.add(new Token(TokenType.COLON, ":"));
                     position++;
                 }
                 continue;
@@ -134,7 +148,7 @@ public class Lexer {
             character.append(input.charAt(position));
             position++;
         }
-        position++; // Move past the closing quote
+        position++;
         return character.toString();
     }
 

@@ -5,6 +5,9 @@ public enum TokenType {
     LETRA, // single character symbol
     TIPIK, //decimal
     STRING,
+    IPAKITA,
+    MUGNA,
+
 
     //arithmetic op
     OPERATOR,
@@ -15,6 +18,7 @@ public enum TokenType {
    greater_than_or_equal_to, lesser_than_or_equal_to,
    equal, not_equal
    */
+    COMMA,
     KEYWORD,
     IDENTIFIER,
     COLON,
