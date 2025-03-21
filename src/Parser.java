@@ -1,6 +1,6 @@
 import java.util.*;
 
-class Parser {
+public class Parser {
     private List<Token> tokens;
     private int position;
     private Map<String, Object> symbolTable;
