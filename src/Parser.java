@@ -311,18 +311,23 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            // If we encounter a keyword, we've reached the end of the print statement
-            if (token.type == TokenType.KEYWORD) {
-                break;
-            }
+            if (token.type == TokenType.KEYWORD) break; // End of print statement
 
             if (token.type == TokenType.IDENTIFIER) {
                 if (!symbolTable.containsKey(token.value)) {
                     throw new RuntimeException("Undefined variable: " + token.value);
                 }
                 Object value = symbolTable.get(token.value);
-                if (value instanceof Boolean) {
-                    System.out.print((Boolean)value ? "OO" : "DILI");
+                String varType = variableTypes.get(token.value);
+
+                if (varType.equals("NUMERO")) {
+                    // Display as whole number (integer)
+                    System.out.print(((Double) value).intValue());
+                } else if (varType.equals("TIPIK")) {
+                    // Display as decimal
+                    System.out.print(value);
+                } else if (value instanceof Boolean) {
+                    System.out.print((Boolean) value ? "OO" : "DILI");
                 } else {
                     System.out.print(value);
                 }
@@ -330,10 +335,9 @@ public class Parser {
                     token.type == TokenType.NUMERO ||
                     token.type == TokenType.TIPIK) {
                 System.out.print(token.value);
-            } else if (token.type == TokenType.TINUOD) {
-                System.out.print(token.value);
             } else if (token.type == TokenType.OPERATOR) {
                 if (token.value.equals("&")) {
+                    // Do nothing, it's just a concatenation operator
                 } else if (token.value.equals("$")) {
                     System.out.println();
                 } else {
@@ -346,4 +350,5 @@ public class Parser {
         }
         System.out.println();
     }
+
 }

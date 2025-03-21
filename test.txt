@@ -3,7 +3,8 @@ SUGOD
 MUGNA NUMERO x, y, z=5
 MUGNA LETRA a_1=’n’
 MUGNA TINUOD t=”OO”
+MUGNA TIPIK x_1 = 5, x_2 = 3
 x=y=4
 a_1=’c’ -- this is a comment
-IPAKITA: x & t & z & $ & a_1 & [#] & “last”
+IPAKITA: x & t & z & $ & a_1 & [#] & “last” $ x_1 & x_2
 KATAPUSAN
