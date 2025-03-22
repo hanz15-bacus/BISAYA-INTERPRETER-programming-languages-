@@ -1,5 +1,8 @@
-SUGOD 
-MUGNA NUMERO val1, val2=50
-val1 = ((val2 / 2) + 15) * -2
-IPAKITA: "{" & val1 & "}"
+SUGOD
+MUGNA NUMERO x, y, z=5
+MUGNA LETRA a_1=’n’
+MUGNA TINUOD t=”OO”
+x=y=4
+a_1=’c’ -- this is a comment
+IPAKITA: x & t & z & $ & a_1 & [#] & “last”
 KATAPUSAN

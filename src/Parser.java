@@ -378,10 +378,13 @@ public class Parser {
                     token.type == TokenType.TIPIK) {
                 output.append(token.value);
             } else if (token.type == TokenType.OPERATOR) {
-                if (token.value.equals("&")) {
-                    // Do nothing, it's just a concatenation operator
-                } else if (token.value.equals("$")) {
-                    System.out.println();
+                if (token.value.equals("$")) {
+                    // Print the current buffer and create a new line
+                    System.out.println(output.toString());
+                    output = new StringBuilder();
+                } else if (token.value.equals("&")) {
+                    // & is concatenation, but doesn't add any visible characters
+                    // Do nothing
                 } else {
                     output.append(token.value);
                 }
@@ -402,6 +405,9 @@ public class Parser {
             result += "]";
         }
 
-        System.out.println(result);
+        // Print any remaining output if not empty
+        if (!result.isEmpty()) {
+            System.out.println(result);
+        }
     }
 }
