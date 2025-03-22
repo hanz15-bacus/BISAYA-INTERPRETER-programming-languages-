@@ -22,5 +22,6 @@ public enum TokenType {
     KEYWORD,
     IDENTIFIER,
     COLON,
+    SYMBOL
 
 }

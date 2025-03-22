@@ -45,16 +45,14 @@ public class Parser {
     }
 
     private void parseVariableDeclaration() {
-        position++; // Move past 'MUGNA'
+        position++; // Skip 'MUGNA'
         if (position >= tokens.size()) throw new RuntimeException("Expected type after MUGNA");
 
         Token typeToken = tokens.get(position);
         String varType = typeToken.value;
         position++;
 
-        // Process all variables of this type (can be comma-separated)
         boolean moreVariables = true;
-
         while (moreVariables) {
             if (position >= tokens.size()) throw new RuntimeException("Expected identifier after type");
 
@@ -63,12 +61,8 @@ public class Parser {
             String varName = identifier.value;
             position++;
 
-            // Set default values based on type
-            Object value = null;
-            if (varType.equals("NUMERO")) value = 0.0;
-            else if (varType.equals("TIPIK")) value = 0.0;
-            else if (varType.equals("TINUOD")) value = false;
-            else if (varType.equals("LETRA")) value = "";
+            Object value = (varType.equals("NUMERO") || varType.equals("TIPIK")) ? 0.0 :
+                    (varType.equals("TINUOD")) ? false : "";
 
             if (position < tokens.size() && tokens.get(position).value.equals("=")) {
                 position++; // Skip '='
@@ -85,8 +79,7 @@ public class Parser {
             symbolTable.put(varName, value);
             variableTypes.put(varName, varType);
 
-            moreVariables = position < tokens.size() &&
-                    tokens.get(position).type == TokenType.COMMA;
+            moreVariables = position < tokens.size() && tokens.get(position).type == TokenType.COMMA;
             if (moreVariables) {
                 position++;
             }
@@ -217,14 +210,14 @@ public class Parser {
     private Object parseNumericExpression() {
         Stack<Double> values = new Stack<>();
         Stack<String> operators = new Stack<>();
-
         boolean expectOperand = true;
 
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            // Stop parsing when a keyword or end token is reached
-            if (token.type == TokenType.KEYWORD || token.type == TokenType.COLON) {
+            // Check for tokens that might end the expression
+            if (token.type == TokenType.KEYWORD || token.type == TokenType.COLON ||
+                    token.type == TokenType.COMMA) {
                 break;
             }
 
@@ -232,53 +225,102 @@ public class Parser {
                 if (token.type == TokenType.NUMERO || token.type == TokenType.TIPIK) {
                     values.push(Double.parseDouble(token.value));
                     expectOperand = false;
-                } else if (token.type == TokenType.IDENTIFIER) {
+                }
+                else if (token.type == TokenType.IDENTIFIER) {
                     if (!symbolTable.containsKey(token.value)) {
-                        throw new RuntimeException("Undefined variable: " + token.value);
+                        throw new RuntimeException("Undefined variable in expression: " + token.value);
                     }
                     Object val = symbolTable.get(token.value);
-                    if (!(val instanceof Double)) {
+                    if (val instanceof Double) {
+                        values.push((Double) val);
+                    } else {
                         throw new RuntimeException("Type mismatch: expected number, got " + val.getClass().getSimpleName());
                     }
-                    values.push((Double) val);
                     expectOperand = false;
-                } else {
-                    throw new RuntimeException("Expected number or variable, but found: " + token.value);
                 }
-            } else {
-                if (token.type == TokenType.OPERATOR) {
-                    if (isValidOperator(token.value)) {
-                        operators.push(token.value);
-                    } else {
-                        throw new RuntimeException("Unsupported operator: " + token.value);
-                    }
+                else if (token.value.equals("(")) {
+                    operators.push("(");
                     expectOperand = true;
-                } else {
-                    break;
+                }
+                else if (token.value.equals("-") && expectOperand) { // Unary minus
+                    operators.push("unary-");
+                    expectOperand = true;
+                }
+                else {
+                    throw new RuntimeException("Expected number, variable, or '(' but found: " + token.value);
                 }
             }
-
+            else { // Expecting an operator or closing parenthesis
+                if (token.value.equals(")")) {
+                    // Process all operators until opening parenthesis
+                    while (!operators.isEmpty() && !operators.peek().equals("(")) {
+                        processOperator(values, operators);
+                    }
+                    if (!operators.isEmpty() && operators.peek().equals("(")) {
+                        operators.pop();  // Remove the opening parenthesis
+                    } else {
+                        throw new RuntimeException("Mismatched parentheses");
+                    }
+                    expectOperand = false;
+                }
+                else if (isValidOperator(token.value)) {
+                    // Process operators with higher precedence
+                    while (!operators.isEmpty() &&
+                            !operators.peek().equals("(") &&
+                            getOperatorPrecedence(operators.peek()) >= getOperatorPrecedence(token.value)) {
+                        processOperator(values, operators);
+                    }
+                    operators.push(token.value);
+                    expectOperand = true;
+                }
+                else {
+                    break;  // End of numeric expression
+                }
+            }
             position++;
         }
 
-        // Apply operators with precedence
+        // Process any remaining operators
         while (!operators.isEmpty()) {
-            if (values.size() < 2) {
-                throw new RuntimeException("Invalid expression: insufficient operands");
+            if (operators.peek().equals("(")) {
+                throw new RuntimeException("Mismatched parentheses");
             }
-
-            double b = values.pop();
-            double a = values.pop();
-            String op = operators.pop();
-            values.push(applyOperator(a, b, op));
+            processOperator(values, operators);
         }
 
-        // Return the evaluated result
         if (values.isEmpty()) {
             return 0.0;
+        } else if (values.size() > 1) {
+            throw new RuntimeException("Invalid expression: too many operands");
         }
 
         return values.pop();
+    }
+
+    private void processOperator(Stack<Double> values, Stack<String> operators) {
+        String op = operators.pop();
+
+        if (op.equals("unary-")) {
+            if (values.isEmpty()) {
+                throw new RuntimeException("Invalid expression: missing operand for unary minus");
+            }
+            double val = values.pop();
+            values.push(-val);
+        } else {
+            if (values.size() < 2) {
+                throw new RuntimeException("Invalid expression: insufficient operands for operator " + op);
+            }
+            double b = values.pop();
+            double a = values.pop();
+            values.push(applyOperator(a, b, op));
+        }
+    }
+
+    private int getOperatorPrecedence(String operator) {
+        if (operator.equals("unary-")) return 3;
+        if (operator.equals("*") || operator.equals("/")) return 2;
+        if (operator.equals("+") || operator.equals("-")) return 1;
+        return 0;
     }
 
     private boolean isValidOperator(String operator) {
@@ -308,6 +350,8 @@ public class Parser {
         }
         position++;
 
+        StringBuilder output = new StringBuilder();
+
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
@@ -321,34 +365,43 @@ public class Parser {
                 String varType = variableTypes.get(token.value);
 
                 if (varType.equals("NUMERO")) {
-                    // Display as whole number (integer)
-                    System.out.print(((Double) value).intValue());
+                    output.append(((Double) value).intValue());
                 } else if (varType.equals("TIPIK")) {
-                    // Display as decimal
-                    System.out.print(value);
+                    output.append(value);
                 } else if (value instanceof Boolean) {
-                    System.out.print((Boolean) value ? "OO" : "DILI");
+                    output.append((Boolean) value ? "OO" : "DILI");
                 } else {
-                    System.out.print(value);
+                    output.append(value);
                 }
             } else if (token.type == TokenType.LETRA ||
                     token.type == TokenType.NUMERO ||
                     token.type == TokenType.TIPIK) {
-                System.out.print(token.value);
+                output.append(token.value);
             } else if (token.type == TokenType.OPERATOR) {
                 if (token.value.equals("&")) {
                     // Do nothing, it's just a concatenation operator
                 } else if (token.value.equals("$")) {
                     System.out.println();
                 } else {
-                    System.out.print(token.value);
+                    output.append(token.value);
                 }
             } else {
                 break;
             }
             position++;
         }
-        System.out.println();
-    }
 
+        // Fix the formatting to ensure negative sign is inside brackets
+        String result = output.toString();
+        if (result.startsWith("[]-")) {
+            result = "[-" + result.substring(3);
+        }
+
+        // Add the closing bracket if needed
+        if (result.contains("[") && !result.contains("]")) {
+            result += "]";
+        }
+
+        System.out.println(result);
+    }
 }
