@@ -5,7 +5,7 @@ import java.util.regex.*;
 public class Lexer {
     private String input;
     private int position;
-    private List<Token> tokens;
+    public List<Token> tokens;
 
     public Lexer(String input) {
         this.input = input.replace("’", "'")
@@ -47,6 +47,7 @@ public class Lexer {
                 position += 5;
                 continue;
             }
+
 
             if (lookahead("IPAKITA")) {
                 tokens.add(new Token(TokenType.KEYWORD, "IPAKITA"));
@@ -106,6 +107,7 @@ public class Lexer {
                 position++;
                 continue;
             }
+
 
             if (currentChar == ':') {
                 if (position + 1 < input.length() && input.charAt(position + 1) == '=') {

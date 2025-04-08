@@ -3,8 +3,8 @@ import java.util.*;
 public class Parser {
     private List<Token> tokens;
     private int position;
-    private Map<String, Object> symbolTable;
-    private Map<String, String> variableTypes;
+    public Map<String, Object> symbolTable;
+    public Map<String, String> variableTypes;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
@@ -179,7 +179,6 @@ public class Parser {
 
             if (expectOperand) {
                 if (token.type == TokenType.TINUOD) {
-                    // Convert "OO" to true, "DILI" to false
                     if (token.value.equals("OO")) {
                         values.push(true);
                         valueTypes.push("TINUOD");
@@ -506,7 +505,6 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            // Check for tokens that might end the expression
             if ((token.type == TokenType.KEYWORD || token.type == TokenType.COLON ||
                     token.type == TokenType.COMMA) && parenthesisCount == 0) {
                 break;
@@ -525,10 +523,8 @@ public class Parser {
                     if (val instanceof Double) {
                         values.push((Double) val);
                     } else if (val instanceof Boolean) {
-                        // Convert boolean to number: true = 1, false = 0
                         values.push(((Boolean) val) ? 1.0 : 0.0);
                     } else if (val instanceof String) {
-                        // Try to parse string as number
                         try {
                             values.push(Double.parseDouble((String) val));
                         } catch (NumberFormatException e) {
@@ -539,8 +535,8 @@ public class Parser {
                     }
                     expectOperand = false;
                 }
-                else if (token.value.equals("(")) {
-                    operators.push("(");
+                else if (token.value.equals("(") || token.value.equals("[")) {
+                    operators.push(token.value);
                     parenthesisCount++;
                     expectOperand = true;
                 }
@@ -549,27 +545,26 @@ public class Parser {
                     expectOperand = true;
                 }
                 else {
-                    throw new RuntimeException("Expected number, variable, or '(' but found: " + token.value);
+                    throw new RuntimeException("Expected number, variable, or '(' or '[' but found: " + token.value);
                 }
             }
-            else { // Expecting an operator or closing parenthesis
-                if (token.value.equals(")")) {
-                    // Process all operators until opening parenthesis
-                    while (!operators.isEmpty() && !operators.peek().equals("(")) {
+            else { // Expecting an operator or closing parenthesis/bracket
+                if (token.value.equals(")") || token.value.equals("]")) {
+                    String matchingOpen = token.value.equals(")") ? "(" : "[";
+                    while (!operators.isEmpty() && !operators.peek().equals(matchingOpen)) {
                         processOperator(values, operators);
                     }
-                    if (!operators.isEmpty() && operators.peek().equals("(")) {
-                        operators.pop();  // Remove the opening parenthesis
+                    if (!operators.isEmpty() && operators.peek().equals(matchingOpen)) {
+                        operators.pop();
                         parenthesisCount--;
                     } else {
-                        throw new RuntimeException("Mismatched parentheses");
+                        throw new RuntimeException("Mismatched parentheses or brackets");
                     }
                     expectOperand = false;
                 }
                 else if (isValidOperator(token.value)) {
-                    // Process operators with higher precedence
                     while (!operators.isEmpty() &&
-                            !operators.peek().equals("(") &&
+                            !(operators.peek().equals("(") || operators.peek().equals("[")) &&
                             getOperatorPrecedence(operators.peek()) >= getOperatorPrecedence(token.value)) {
                         processOperator(values, operators);
                     }
@@ -583,10 +578,9 @@ public class Parser {
             position++;
         }
 
-        // Process any remaining operators
         while (!operators.isEmpty()) {
-            if (operators.peek().equals("(")) {
-                throw new RuntimeException("Mismatched parentheses");
+            if (operators.peek().equals("(") || operators.peek().equals("[")) {
+                throw new RuntimeException("Mismatched parentheses or brackets");
             }
             processOperator(values, operators);
         }
@@ -599,6 +593,7 @@ public class Parser {
 
         return values.pop();
     }
+
 
     private void processOperator(Stack<Double> values, Stack<String> operators) {
         String op = operators.pop();
@@ -698,20 +693,32 @@ public class Parser {
             position++;
         }
 
-        // Fix the formatting to ensure negative sign is inside brackets
-        String result = output.toString();
+        String result = output.toString().trim();
+
+
+        while(result.contains("[]")) {
+            int index = result.indexOf("[]");
+            if (index > 0) {
+                // Remove the first occurrence of "[]" if it's NOT at the start
+                result = result.substring(0, index) + result.substring(index + 2);
+            }
+        }
+
+        if (!result.startsWith("[") && !result.endsWith("]") && result.length() == 1) {
+            result = "[" + result + "]";
+        }
+
         if (result.startsWith("[]-")) {
             result = "[-" + result.substring(3);
         }
 
-        // Add the closing bracket if needed
         if (result.contains("[") && !result.contains("]")) {
             result += "]";
         }
 
-        // Print any remaining output if not empty
         if (!result.isEmpty()) {
             System.out.println(result);
         }
+
     }
 }
