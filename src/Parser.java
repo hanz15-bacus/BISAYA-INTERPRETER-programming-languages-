@@ -21,7 +21,7 @@ public class Parser {
                 case KEYWORD:
                     switch (token.value) {
                         case "SUGOD":
-                            position++; // Start of the program
+                            position++;
                             break;
                         case "MUGNA":
                             parseVariableDeclaration();
@@ -30,13 +30,13 @@ public class Parser {
                             parsePrintStatement();
                             break;
                         case "KATAPUSAN":
-                            return; // End execution
+                            return;
                         default:
                             ErrorHandler.handleUnexpectedKeyword(token.value);
                     }
                     break;
                 case IDENTIFIER:
-                    parseAssignment(); // Handle variable assignments
+                    parseAssignment();
                     break;
                 default:
                     ErrorHandler.handleUnexpectedToken(token.type, token.value);
@@ -45,7 +45,7 @@ public class Parser {
     }
 
     private void parseVariableDeclaration() {
-        position++; // Skip 'MUGNA'
+        position++;
         if (position >= tokens.size()) ErrorHandler.handleExpectedTypeAfterKeyword("MUGNA");
 
         Token typeToken = tokens.get(position);
@@ -61,34 +61,30 @@ public class Parser {
             String varName = identifier.value;
             position++;
 
-            // Set default value based on variable type
             Object value;
             if (varType.equals("NUMERO") || varType.equals("TIPIK")) {
                 value = 0.0;
             } else if (varType.equals("TINUOD")) {
-                value = false; // Default to false
+                value = false;
             } else {
                 value = "";
             }
 
-            // If there's an assignment, parse the right-hand side
             if (position < tokens.size() && tokens.get(position).value.equals("=")) {
-                position++; // Skip '='
+                position++;
 
                 if (varType.equals("TINUOD")) {
                     value = parseBooleanExpression();
                 } else if (varType.equals("LETRA")) {
                     value = parseCharacterExpression();
-                } else { // NUMERO or TIPIK
+                } else {
                     value = parseNumericExpression();
                 }
             }
 
-            // Add the variable to the symbol table
             symbolTable.put(varName, value);
             variableTypes.put(varName, varType);
 
-            // Check if there are more variables in the declaration
             moreVariables = position < tokens.size() && tokens.get(position).type == TokenType.COMMA;
             if (moreVariables) {
                 position++;
@@ -112,13 +108,10 @@ public class Parser {
         varNames.add(varName);
         position++;
 
-        // Check for equals sign
         if (position >= tokens.size() || !tokens.get(position).value.equals("=")) {
             ErrorHandler.handleExpectedEqualsAfterIdentifier();
         }
-        position++; // Skip '='
-
-        // Check for chained assignment
+        position++;
         if (position < tokens.size() && tokens.get(position).type == TokenType.IDENTIFIER) {
             int tempPosition = position;
             String nextVarName = tokens.get(tempPosition).value;
@@ -447,7 +440,7 @@ public class Parser {
         }
 
         ErrorHandler.handleInvalidCharacterExpression();
-        return ""; // This line will never be reached
+        return "";
     }
 
     private Object parseNumericExpression() {
@@ -569,80 +562,128 @@ public class Parser {
 
     private void parsePrintStatement() {
         position++; // Skip 'IPAKITA'
+
+        // Check for colon after 'IPAKITA'
         if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.COLON)) {
             ErrorHandler.handleExpectedColonAfterKeyword("IPAKITA");
         }
-        position++;
+        position++; // Skip the colon
 
         StringBuilder output = new StringBuilder();
 
+        // Loop through the tokens to handle printing
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            if (token.type == TokenType.KEYWORD) break;
-
-            if (token.type == TokenType.IDENTIFIER) {
-                if (!symbolTable.containsKey(token.value)) {
-                    ErrorHandler.handleUndefinedVariable(token.value);
-                }
-                Object value = symbolTable.get(token.value);
-                String varType = variableTypes.get(token.value);
-
-                if (varType.equals("NUMERO")) {
-                    output.append(((Double) value).intValue());
-                } else if (varType.equals("TIPIK")) {
-                    output.append(value);
-                } else if (varType.equals("TINUOD")) {
-                    output.append((Boolean) value ? "OO" : "DILI");
-                } else {
-                    output.append(value);
-                }
-            } else if (token.type == TokenType.LETRA ||
-                    token.type == TokenType.NUMERO ||
-                    token.type == TokenType.TIPIK) {
-                output.append(token.value);
-            } else if (token.type == TokenType.OPERATOR) {
-                if (token.value.equals("$")) {
-                    System.out.println(output.toString());
-                    output = new StringBuilder();
-                } else if (token.value.equals("&")) {
-                    // Do nothing for concatenation
-                } else {
-                    output.append(token.value);
-                }
-            } else {
+            // Exit when encountering a new keyword (like the next statement)
+            if (token.type == TokenType.KEYWORD) {
                 break;
             }
+
+            switch (token.type) {
+                case IDENTIFIER:
+                    // Handle identifier (variable)
+                    if (!symbolTable.containsKey(token.value)) {
+                        ErrorHandler.handleUndefinedVariable(token.value);
+                    }
+                    Object value = symbolTable.get(token.value);
+                    String varType = variableTypes.get(token.value);
+
+                    if (varType.equals("NUMERO")) {
+                        output.append(((Double) value).intValue());
+                    } else if (varType.equals("TIPIK")) {
+                        output.append(value);
+                    } else if (varType.equals("TINUOD")) {
+                        output.append((Boolean) value ? "OO" : "DILI");
+                    } else {
+                        output.append(value);
+                    }
+                    break;
+
+                case LETRA:
+                case NUMERO:
+                    // Directly append other values like LETRA and NUMERO
+                    output.append(token.value);
+                    break;
+
+                case TIPIK:
+                    // Handle TIPIK values
+                    String valueInBrackets = token.value;
+
+                    // Handle brackets - strip the brackets and print the inside
+                    if (valueInBrackets.startsWith("[") && valueInBrackets.endsWith("]")) {
+                        if (valueInBrackets.equals("[]")) {
+                            // If it's an empty bracket, ignore it
+                            continue;
+                        } else {
+                            // Otherwise, print the content inside the brackets
+                            output.append(valueInBrackets.substring(1, valueInBrackets.length() - 1));
+                        }
+                    } else {
+                        // Normal TIPIK handling (non-bracketed string)
+                        output.append(token.value);
+                    }
+                    break;
+
+                case OPERATOR:
+                    // Handle operators
+                    if (token.value.equals("$")) {
+                        // Handle the line break
+                        String result = cleanOutput(output.toString());
+                        if (!result.isEmpty()) {
+                            System.out.println(result);
+                        }
+                        output = new StringBuilder(); // Reset the output buffer
+                    } else if (token.value.equals("&")) {
+                        // Concatenation - do nothing (handled automatically)
+                    } else {
+                        output.append(token.value); // Append any other operator
+                    }
+                    break;
+
+                default:
+                    // Other cases (not expected, just ignore)
+                    break;
+            }
+
             position++;
         }
 
-        String result = output.toString().trim();
+        // Final output cleaning and printing
+        String finalOutput = cleanOutput(output.toString());
+        if (!finalOutput.isEmpty()) {
+            System.out.println(finalOutput);
+        }
+    }
 
-        while(result.contains("[]")) {
-            int index = result.indexOf("[]");
-            if (index > 0) {
-                result = result.substring(0, index) + result.substring(index + 2);
-            }
+    private String cleanOutput(String result) {
+        result = result.trim();
+
+        // Remove any empty escape brackets "[]"
+        while (result.contains("[]")) {
+            result = result.replace("[]", "");
         }
 
-        if (!result.startsWith("[") && !result.endsWith("]") && result.length() == 1) {
+        // Handle closing of brackets if needed
+        if (result.length() == 1 && !result.startsWith("[") && !result.endsWith("]")) {
             result = "[" + result + "]";
         }
 
+        // Special case fix: []- becomes [-...
         if (result.startsWith("[]-")) {
             result = "[-" + result.substring(3);
         }
 
+        // Ensure proper closing of brackets if any
         if (result.contains("[") && !result.contains("]")) {
             result += "]";
         }
 
-        if (!result.isEmpty()) {
-            System.out.println(result);
-        }
+        return result;
     }
 
-    // Helper methods remain unchanged
+
+
     private int getBooleanPrecedence(String operator) {
         if (operator.equals("DILI")) return 5;
         if (operator.equals("<") || operator.equals(">") ||
@@ -674,7 +715,7 @@ public class Parser {
                 return a / b;
             default:
                 ErrorHandler.handleUnknownOperator(operator);
-                return 0; // This line will never be reached
+                return 0;
         }
     }
 }

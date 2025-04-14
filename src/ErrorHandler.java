@@ -101,4 +101,14 @@ public class ErrorHandler {
     public static void handleInvalidPrintStatement() {
         throw new RuntimeException("Invalid print statement");
     }
+    public static void handleInvalidInputStatement() {
+        throw new RuntimeException("Syntax Error: Invalid DAWAT statement. Expected at least one variable identifier");
+    }
+    public static void handleInsufficientInputValues(int expected, int actual) {
+        throw new RuntimeException("Input Error: Expected " + expected + " values but received only " + actual);
+    }
+
+    public static void handleInvalidInputForType(String varName, String varType, String value) {
+        throw new RuntimeException("Type Error: Cannot convert '" + value + "' to type " + varType + " for variable '" + varName + "'");
+    }
 }

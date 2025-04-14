@@ -8,21 +8,17 @@ public class Main {
         String fileName = "test.txt";
 
         try {
-            // Read the entire content of the file
             String input = Files.readString(Paths.get(fileName));
 
-            // Run Lexer
             Lexer lexer = new Lexer(input);
             List<Token> tokens = lexer.tokenize();
 
-
-
-           /*
+            /*
            System.out.println("Tokens:");
             for (Token token : tokens) {
                System.out.println(token);
             }
-                */
+            */
             System.out.println("\nExecuting Bisaya++ Code:\n");
             Parser parser = new Parser(tokens);
             parser.parse();

@@ -48,7 +48,6 @@ public class Lexer {
                 continue;
             }
 
-
             if (lookahead("IPAKITA")) {
                 tokens.add(new Token(TokenType.KEYWORD, "IPAKITA"));
                 position += 7;
@@ -89,25 +88,35 @@ public class Lexer {
                 continue;
             }
 
-            // Check for two-character operators first
+            // Check for [] as escape code
+            if (position + 1 < input.length() && input.charAt(position) == '[' && input.charAt(position + 1) == ']') {
+                // Skip brackets but do not add them to tokens
+                position += 2;
+                continue;
+            }
+
+            if (currentChar == '[' || currentChar == ']') {
+                // Skip individual brackets to suppress from output
+                position++;
+                continue;
+            }
+
             if (position + 1 < input.length()) {
                 String twoChars = input.substring(position, position + 2);
-                if (twoChars.equals(">=") || twoChars.equals("<=") ||
+                if (twoChars.equals("=>") || twoChars.equals("<=") ||
                         twoChars.equals("==") || twoChars.equals("<>") ||
-                        twoChars.equals("&")) {
+                        twoChars.equals("&&") || twoChars.equals("&")) {
                     tokens.add(new Token(TokenType.OPERATOR, twoChars));
                     position += 2;
                     continue;
                 }
             }
 
-            // Then check for single-character operators
-            if ("()+-*/%<>$&[]#,=".indexOf(currentChar) != -1) {
+            if ("()+-*/%$&#,.=<>".indexOf(currentChar) != -1) {
                 tokens.add(new Token(currentChar == ',' ? TokenType.COMMA : TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;
             }
-
 
             if (currentChar == ':') {
                 if (position + 1 < input.length() && input.charAt(position + 1) == '=') {
@@ -149,34 +158,33 @@ public class Lexer {
         return number.toString();
     }
 
-    // Add or update these methods
     private String extractCharacter() {
         char delimiter = input.charAt(position);
-        position++; // Skip opening quote
+        position++;
 
         if (position >= input.length()) {
             throw new RuntimeException("Unterminated character literal");
         }
 
         char value = input.charAt(position);
-        position++; // Move past the character
+        position++;
 
-        // Check for closing quote
         if (position >= input.length() || input.charAt(position) != delimiter) {
             throw new RuntimeException("Unterminated character literal");
         }
 
-        position++; // Skip closing quote
-        return String.valueOf(value); // Return the actual character value
+        position++;
+        return String.valueOf(value);
     }
 
     private boolean lookahead(String keyword) {
         return input.startsWith(keyword, position);
     }
+
     private String extractString() {
         char delimiter = input.charAt(position);
         StringBuilder sb = new StringBuilder();
-        position++; // Skip opening quote
+        position++;
 
         while (position < input.length() && input.charAt(position) != delimiter) {
             sb.append(input.charAt(position));
@@ -187,7 +195,7 @@ public class Lexer {
             throw new RuntimeException("Unterminated string literal");
         }
 
-        position++; // Skip closing quote
+        position++;
         return sb.toString();
     }
 }
