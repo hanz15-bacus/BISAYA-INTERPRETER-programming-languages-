@@ -567,22 +567,19 @@ public class Parser {
     }
 
     private void parsePrintStatement() {
-        position++; // Skip 'IPAKITA'
+        position++;
 
-        // Check for colon after 'IPAKITA'
         if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.COLON)) {
             ErrorHandler.handleExpectedColonAfterKeyword("IPAKITA");
         }
-        position++; // Skip the colon
+        position++;
 
         StringBuilder output = new StringBuilder();
         boolean inEscapeBracket = false;
 
-        // Loop through the tokens to handle printing
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            // Exit when encountering a new keyword (like the next statement)
             if (token.type == TokenType.KEYWORD) {
                 break;
             }
@@ -600,13 +597,10 @@ public class Parser {
             }
 
             if (inEscapeBracket) {
-                // Inside brackets - directly append everything as literal text
                 output.append(token.value);
             } else {
-                // Outside brackets - normal token processing
                 switch (token.type) {
                     case IDENTIFIER:
-                        // Handle identifier (variable)
                         if (!symbolTable.containsKey(token.value)) {
                             ErrorHandler.handleUndefinedVariable(token.value);
                         }
@@ -627,18 +621,14 @@ public class Parser {
                     case LETRA:
                     case NUMERO:
                     case TIPIK:
-                        // Directly append literal values
                         output.append(token.value);
                         break;
 
                     case OPERATOR:
-                        // Handle operators
                         if (token.value.equals("$")) {
-                            // Handle the line break
                             System.out.println(output.toString());
-                            output = new StringBuilder(); // Reset the output buffer
+                            output = new StringBuilder();
                         } else if (token.value.equals("&")) {
-                            // Concatenation - do nothing (handled automatically)
                         } else {
                             // For other operators, we don't append them outside brackets
                             // They should be escaped with brackets to print literally
@@ -646,7 +636,6 @@ public class Parser {
                         break;
 
                     default:
-                        // Other cases
                         break;
                 }
             }
@@ -654,7 +643,6 @@ public class Parser {
             position++;
         }
 
-        // Final output printing
         String finalOutput = output.toString();
         if (!finalOutput.isEmpty()) {
             System.out.println(finalOutput);
@@ -665,19 +653,16 @@ public class Parser {
     private String cleanOutput(String result) {
         result = result.trim();
 
-        // Remove any empty escape brackets "[]"
         while (result.contains("[]")) {
             result = result.replace("[]", "");
         }
 
-        // Handle closing of brackets if needed
         if (result.length() == 1 && !result.startsWith("[") && !result.endsWith("]")) {
             result = "[" + result + "]";
         }
 
-        // Special case fix: []- becomes [-...
         if (result.startsWith("[]-")) {
-            result = "[-" + result.substring(3);
+            result = "[" + result.substring(3);
         }
         if (result.contains("[") && !result.contains("]")) {
             result += "]";

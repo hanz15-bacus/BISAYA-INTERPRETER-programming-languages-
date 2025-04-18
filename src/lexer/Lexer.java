@@ -90,7 +90,6 @@ public class Lexer {
                 continue;
             }
 
-            // Always treat brackets as operators - let the parser decide if they're for escaping
             if (currentChar == '[' || currentChar == ']') {
                 tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
@@ -130,8 +129,7 @@ public class Lexer {
         return tokens;
     }
 
-    // Remove the isOutermostBracket and isClosingOutermostBracket methods
-    // as we want to always treat brackets as operators
+
 
     private String extractIdentifier() {
         StringBuilder identifier = new StringBuilder();
