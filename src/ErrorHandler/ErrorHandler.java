@@ -1,4 +1,7 @@
-import java.util.List;
+package ErrorHandler;
+
+import lexer.Token;
+import lexer.TokenType;
 
 public class ErrorHandler {
     public static void handleUnexpectedKeyword(String keyword) {
@@ -40,7 +43,7 @@ public class ErrorHandler {
 
     public static void handleExpectedValue(Token token) {
         throw new RuntimeException("Expected value, but got: " + token.value +
-                " (Token type: " + token.type + ")");
+                " (lexer.Token type: " + token.type + ")");
     }
 
     public static void handleMismatchedParentheses() {

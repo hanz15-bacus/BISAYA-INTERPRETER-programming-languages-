@@ -1,3 +1,5 @@
+package lexer;
+
 public class Token {
     public final TokenType type;
     public final String value;

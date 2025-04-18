@@ -1,3 +1,5 @@
+import lexer.Token;
+
 import java.util.List;
 
 public class ParseTree{

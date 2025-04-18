@@ -1,4 +1,10 @@
+package parser;
+
+import lexer.Token;
+import lexer.TokenType;
+
 import java.util.*;
+import ErrorHandler.ErrorHandler;
 
 public class Parser {
     private List<Token> tokens;
@@ -673,8 +679,6 @@ public class Parser {
         if (result.startsWith("[]-")) {
             result = "[-" + result.substring(3);
         }
-
-        // Ensure proper closing of brackets if any
         if (result.contains("[") && !result.contains("]")) {
             result += "]";
         }

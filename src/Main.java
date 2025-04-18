@@ -1,3 +1,7 @@
+import lexer.Lexer;
+import lexer.Token;
+import parser.Parser;
+
 import java.io.*;
 import java.nio.file.*;
 import java.util.List;
@@ -15,11 +19,11 @@ public class Main {
 
             /*
            System.out.println("Tokens:");
-            for (Token token : tokens) {
+            for (lexer.Token token : tokens) {
                System.out.println(token);
             }
             */
-           /* public Lexer(String input) {
+           /* public lexer.Lexer(String input) {
                 this.input = input
                         .replace("‘", "'")   // Left single quote
                         .replace("’", "'")   // Right single quote
