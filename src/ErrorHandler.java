@@ -5,6 +5,7 @@ public class ErrorHandler {
         throw new RuntimeException("Unexpected keyword: " + keyword);
     }
 
+
     public static void handleUnexpectedToken(TokenType type, String value) {
         throw new RuntimeException("Unexpected token: " + type + " with value: " + value);
     }

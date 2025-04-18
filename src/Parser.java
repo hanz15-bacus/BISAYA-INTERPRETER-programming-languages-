@@ -570,6 +570,7 @@ public class Parser {
         position++; // Skip the colon
 
         StringBuilder output = new StringBuilder();
+        boolean inEscapeBracket = false;
 
         // Loop through the tokens to handle printing
         while (position < tokens.size()) {
@@ -580,81 +581,80 @@ public class Parser {
                 break;
             }
 
-            switch (token.type) {
-                case IDENTIFIER:
-                    // Handle identifier (variable)
-                    if (!symbolTable.containsKey(token.value)) {
-                        ErrorHandler.handleUndefinedVariable(token.value);
-                    }
-                    Object value = symbolTable.get(token.value);
-                    String varType = variableTypes.get(token.value);
+            if (token.type == TokenType.OPERATOR && token.value.equals("[")) {
+                inEscapeBracket = true;
+                position++;
+                continue;
+            }
 
-                    if (varType.equals("NUMERO")) {
-                        output.append(((Double) value).intValue());
-                    } else if (varType.equals("TIPIK")) {
-                        output.append(value);
-                    } else if (varType.equals("TINUOD")) {
-                        output.append((Boolean) value ? "OO" : "DILI");
-                    } else {
-                        output.append(value);
-                    }
-                    break;
+            if (token.type == TokenType.OPERATOR && token.value.equals("]")) {
+                inEscapeBracket = false;
+                position++;
+                continue;
+            }
 
-                case LETRA:
-                case NUMERO:
-                    // Directly append other values like LETRA and NUMERO
-                    output.append(token.value);
-                    break;
+            if (inEscapeBracket) {
+                // Inside brackets - directly append everything as literal text
+                output.append(token.value);
+            } else {
+                // Outside brackets - normal token processing
+                switch (token.type) {
+                    case IDENTIFIER:
+                        // Handle identifier (variable)
+                        if (!symbolTable.containsKey(token.value)) {
+                            ErrorHandler.handleUndefinedVariable(token.value);
+                        }
+                        Object value = symbolTable.get(token.value);
+                        String varType = variableTypes.get(token.value);
 
-                case TIPIK:
-                    // Handle TIPIK values
-                    String valueInBrackets = token.value;
-
-                    // Handle brackets - strip the brackets and print the inside
-                    if (valueInBrackets.startsWith("[") && valueInBrackets.endsWith("]")) {
-                        if (valueInBrackets.equals("[]")) {
-                            // If it's an empty bracket, ignore it
-                            continue;
+                        if (varType.equals("NUMERO")) {
+                            output.append(((Double) value).intValue());
+                        } else if (varType.equals("TIPIK")) {
+                            output.append(value);
+                        } else if (varType.equals("TINUOD")) {
+                            output.append((Boolean) value ? "OO" : "DILI");
                         } else {
-                            // Otherwise, print the content inside the brackets
-                            output.append(valueInBrackets.substring(1, valueInBrackets.length() - 1));
+                            output.append(value);
                         }
-                    } else {
-                        // Normal TIPIK handling (non-bracketed string)
+                        break;
+
+                    case LETRA:
+                    case NUMERO:
+                    case TIPIK:
+                        // Directly append literal values
                         output.append(token.value);
-                    }
-                    break;
+                        break;
 
-                case OPERATOR:
-                    // Handle operators
-                    if (token.value.equals("$")) {
-                        // Handle the line break
-                        String result = cleanOutput(output.toString());
-                        if (!result.isEmpty()) {
-                            System.out.println(result);
+                    case OPERATOR:
+                        // Handle operators
+                        if (token.value.equals("$")) {
+                            // Handle the line break
+                            System.out.println(output.toString());
+                            output = new StringBuilder(); // Reset the output buffer
+                        } else if (token.value.equals("&")) {
+                            // Concatenation - do nothing (handled automatically)
+                        } else {
+                            // For other operators, we don't append them outside brackets
+                            // They should be escaped with brackets to print literally
                         }
-                        output = new StringBuilder(); // Reset the output buffer
-                    } else if (token.value.equals("&")) {
-                        // Concatenation - do nothing (handled automatically)
-                    } else {
-                        output.append(token.value); // Append any other operator
-                    }
-                    break;
+                        break;
 
-                default:
-                    // Other cases (not expected, just ignore)
-                    break;
+                    default:
+                        // Other cases
+                        break;
+                }
             }
 
             position++;
         }
 
-        // Final output cleaning and printing
-        String finalOutput = cleanOutput(output.toString());
+        // Final output printing
+        String finalOutput = output.toString();
         if (!finalOutput.isEmpty()) {
             System.out.println(finalOutput);
         }
     }
+
 
     private String cleanOutput(String result) {
         result = result.trim();

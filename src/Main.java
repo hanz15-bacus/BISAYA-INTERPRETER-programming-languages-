@@ -19,6 +19,16 @@ public class Main {
                System.out.println(token);
             }
             */
+           /* public Lexer(String input) {
+                this.input = input
+                        .replace("‘", "'")   // Left single quote
+                        .replace("’", "'")   // Right single quote
+                        .replace("“", "\"")  // Left double quote
+                        .replace("”", "\""); // Right double quote
+                this.position = 0;
+                this.tokens = new ArrayList<>();
+            }
+            */
             System.out.println("\nExecuting Bisaya++ Code:\n");
             Parser parser = new Parser(tokens);
             parser.parse();

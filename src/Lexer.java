@@ -1,6 +1,4 @@
 import java.util.*;
-import java.io.*;
-import java.util.regex.*;
 
 public class Lexer {
     private String input;
@@ -8,10 +6,11 @@ public class Lexer {
     public List<Token> tokens;
 
     public Lexer(String input) {
-        this.input = input.replace("’", "'")
-                .replace("‘", "'")
-                .replace("“", "\"")
-                .replace("”", "\"");
+        this.input = input
+                .replace("‘", "'")   // Left single quote
+                .replace("’", "'")   // Right single quote
+                .replace("“", "\"")  // Left double quote
+                .replace("”", "\""); // Right double quote
         this.position = 0;
         this.tokens = new ArrayList<>();
     }
@@ -30,6 +29,7 @@ public class Lexer {
                 continue;
             }
 
+            // Handle keywords
             if (lookahead("SUGOD")) {
                 tokens.add(new Token(TokenType.KEYWORD, "SUGOD"));
                 position += 5;
@@ -88,22 +88,16 @@ public class Lexer {
                 continue;
             }
 
-            // Check for [] as escape code
-            if (position + 1 < input.length() && input.charAt(position) == '[' && input.charAt(position + 1) == ']') {
-                // Skip brackets but do not add them to tokens
-                position += 2;
-                continue;
-            }
-
+            // Always treat brackets as operators - let the parser decide if they're for escaping
             if (currentChar == '[' || currentChar == ']') {
-                // Skip individual brackets to suppress from output
+                tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;
             }
 
             if (position + 1 < input.length()) {
                 String twoChars = input.substring(position, position + 2);
-                if (twoChars.equals("=>") || twoChars.equals("<=") ||
+                if (twoChars.equals("<=") || twoChars.equals(">=") ||
                         twoChars.equals("==") || twoChars.equals("<>") ||
                         twoChars.equals("&&") || twoChars.equals("&")) {
                     tokens.add(new Token(TokenType.OPERATOR, twoChars));
@@ -133,6 +127,9 @@ public class Lexer {
         }
         return tokens;
     }
+
+    // Remove the isOutermostBracket and isClosingOutermostBracket methods
+    // as we want to always treat brackets as operators
 
     private String extractIdentifier() {
         StringBuilder identifier = new StringBuilder();
