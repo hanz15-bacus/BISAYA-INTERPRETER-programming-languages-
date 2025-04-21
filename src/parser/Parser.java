@@ -93,7 +93,7 @@ public class Parser {
         }
 
         // Now process the input for each variable
-        System.out.print("Enter values (separated by commas): ");
+        System.out.print("Enter values: ");
         String input = scanner.nextLine();
         String[] values = input.split(",");
 

@@ -31,7 +31,6 @@ public class Lexer {
                 continue;
             }
 
-            // Handle keywords
             if (lookahead("SUGOD")) {
                 tokens.add(new Token(TokenType.KEYWORD, "SUGOD"));
                 position += 5;
