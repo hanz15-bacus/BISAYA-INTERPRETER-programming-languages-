@@ -90,8 +90,18 @@ public class Lexer {
                 continue;
             }
 
-            if (currentChar == '[' || currentChar == ']') {
+           /* if (currentChar == '[' || currentChar == ']') {
                 tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
+                position++;
+                continue;
+            }*/
+            if(currentChar == '['){
+                tokens.add(new Token(TokenType.LEFTESCAPEBRACKET, String.valueOf(currentChar)));
+                position++;
+                continue;
+            }
+            if(currentChar == ']'){
+                tokens.add(new Token(TokenType.RIGHTESCAPEBRACKET, String.valueOf(currentChar)));
                 position++;
                 continue;
             }
@@ -107,7 +117,7 @@ public class Lexer {
                 }
             }
 
-            if ("()+-*/%$&#,.=<>".indexOf(currentChar) != -1) {
+            if ("()+-*/%$&#,.=<>[]".indexOf(currentChar) != -1) {
                 tokens.add(new Token(currentChar == ',' ? TokenType.COMMA : TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;

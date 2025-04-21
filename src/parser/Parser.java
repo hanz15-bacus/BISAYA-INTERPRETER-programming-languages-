@@ -584,19 +584,20 @@ public class Parser {
                 break;
             }
 
-            if (token.type == TokenType.OPERATOR && token.value.equals("[")) {
+            if (token.type == TokenType.LEFTESCAPEBRACKET && token.value.equals("[") && !inEscapeBracket) {
                 inEscapeBracket = true;
                 position++;
                 continue;
             }
 
-            if (token.type == TokenType.OPERATOR && token.value.equals("]")) {
+            if (token.type == TokenType.RIGHTESCAPEBRACKET && token.value.equals("]") && inEscapeBracket) {
                 inEscapeBracket = false;
                 position++;
                 continue;
             }
 
             if (inEscapeBracket) {
+                // Inside escape brackets, print everything literally, including nested brackets
                 output.append(token.value);
             } else {
                 switch (token.type) {
@@ -629,10 +630,17 @@ public class Parser {
                             System.out.println(output.toString());
                             output = new StringBuilder();
                         } else if (token.value.equals("&")) {
+                            // Concatenation operator, doesn't need to append anything
                         } else {
                             // For other operators, we don't append them outside brackets
                             // They should be escaped with brackets to print literally
                         }
+                        break;
+
+                    case LEFTESCAPEBRACKET:
+                    case RIGHTESCAPEBRACKET:
+                        // If brackets are encountered outside of escape mode
+                        // we don't append them to output
                         break;
 
                     default:
@@ -648,29 +656,6 @@ public class Parser {
             System.out.println(finalOutput);
         }
     }
-
-
-    private String cleanOutput(String result) {
-        result = result.trim();
-
-        while (result.contains("[]")) {
-            result = result.replace("[]", "");
-        }
-
-        if (result.length() == 1 && !result.startsWith("[") && !result.endsWith("]")) {
-            result = "[" + result + "]";
-        }
-
-        if (result.startsWith("[]-")) {
-            result = "[" + result.substring(3);
-        }
-        if (result.contains("[") && !result.contains("]")) {
-            result += "]";
-        }
-
-        return result;
-    }
-
 
 
     private int getBooleanPrecedence(String operator) {

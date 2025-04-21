@@ -115,4 +115,5 @@ public class ErrorHandler {
     public static void handleInvalidInputForType(String varName, String varType, String value) {
         throw new RuntimeException("Type Error: Cannot convert '" + value + "' to type " + varType + " for variable '" + varName + "'");
     }
+
 }
