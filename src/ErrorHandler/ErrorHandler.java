@@ -124,4 +124,48 @@ public class ErrorHandler {
         throw new RuntimeException("sayop boang");
 
     }
+    public static void handleExpectedClosingBrace() {
+        throw new SyntaxErrorException("❌ Expected closing brace '}'");
+    }
+
+    public static void handleExpectedOpeningBrace() {
+        throw new SyntaxErrorException("❌ Expected opening brace '{'");
+    }
+
+    public static void handleExpectedPundokAfterCondition() {
+        throw new SyntaxErrorException("❌ Expected keyword 'PUNDOK' after condition");
+    }
+
+    public static void handleExpectedConditionAfterKung() {
+        throw new SyntaxErrorException("❌ Expected condition after keyword 'KUNG'");
+    }
+
+    public static void handleInvalidConditionType() {
+        throw new RuntimeException("Invalid condition type: Conditions must evaluate to a boolean value (TINUOD).");
+    }
+
+    public static void handleExpectedParenthesisAfterKung() {
+        throw new RuntimeException("Syntax error: Expected '(' after 'KUNG' keyword.");
+    }
+
+    public static void handleNonBooleanCondition() {
+        throw new RuntimeException("Condition type error: The expression inside 'KUNG' must be a boolean.");
+    }
+
+    public static void handleExpectedPundokKeyword() {
+        throw new RuntimeException("Syntax error: Expected 'PUNDOK' keyword to start a code block after condition.");
+    }
+
+    public static void handleExpectedClosingParenthesis() {
+        throw new RuntimeException("Syntax error: Missing closing ')' in condition.");
+    }
+
+    public static void handleMissingClosingBrace() {
+        throw new RuntimeException("Syntax error: Missing closing '}' for code block.");
+    }
+
+    public static void handleUnexpectedToken(Token token) {
+        throw new RuntimeException("Unexpected token: '" + token.value + "' of type " + token.type + ".");
+    }
+
 }

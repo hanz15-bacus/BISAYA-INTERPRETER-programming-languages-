@@ -15,5 +15,6 @@ public enum TokenType {
     BRACKETS,
     LPAREN,
     RPAREN,
-    KUNG,
+    LEFTBRACE,
+    RIGHTBRACE
 }

@@ -1,6 +1,6 @@
 SUGOD
-MUGNA NUMERO x=10, y=5, z=2
-MUGNA NUMERO result
-result = ((x * y) / z) - 3
-IPAKITA:  & result &
+MUGNA TIPIK num, square
+DAWAT: num
+square = num * num
+IPAKITA: square
 KATAPUSAN

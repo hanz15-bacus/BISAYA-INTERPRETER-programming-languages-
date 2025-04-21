@@ -30,6 +30,18 @@ public class Lexer {
                 skipComment();
                 continue;
             }
+            if (currentChar == '{') {
+                tokens.add(new Token(TokenType.LEFTBRACE, "{"));
+                position++;
+                continue;
+            }
+
+            if (currentChar == '}') {
+                tokens.add(new Token(TokenType.RIGHTBRACE, "}"));
+                position++;
+                continue;
+            }
+
 
             if (lookahead("SUGOD")) {
                 tokens.add(new Token(TokenType.KEYWORD, "SUGOD"));
@@ -58,6 +70,20 @@ public class Lexer {
             if (lookahead("DAWAT")) {
                 tokens.add(new Token(TokenType.KEYWORD, "DAWAT"));
                 position += 5;
+                continue;
+            }
+
+            // Add recognition for KUNG (if) keyword
+            if (lookahead("KUNG")) {
+                tokens.add(new Token(TokenType.KEYWORD, "KUNG"));
+                position += 4;
+                continue;
+            }
+
+            // Add recognition for PUNDOK keyword
+            if (lookahead("PUNDOK")) {
+                tokens.add(new Token(TokenType.KEYWORD, "PUNDOK"));
+                position += 6;
                 continue;
             }
 
@@ -117,8 +143,11 @@ public class Lexer {
                 }
             }
 
-            if ("()+-*/%$&#,.=<>[]".indexOf(currentChar) != -1) {
-                tokens.add(new Token(currentChar == ',' ? TokenType.COMMA : TokenType.OPERATOR, String.valueOf(currentChar)));
+            if ("()+-*/%$&#,.=<>{}[]".indexOf(currentChar) != -1) {
+                tokens.add(new Token(currentChar == ',' ? TokenType.COMMA :
+                        currentChar == '{' ? TokenType.LEFTBRACE :
+                                currentChar == '}' ? TokenType.RIGHTBRACE :
+                                        TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;
             }

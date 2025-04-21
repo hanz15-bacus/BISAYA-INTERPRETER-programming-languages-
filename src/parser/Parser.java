@@ -1,4 +1,3 @@
-
 package parser;
 
 import lexer.Token;
@@ -42,8 +41,12 @@ public class Parser {
                         case "DAWAT":
                             parseInputStatement();
                             break;
+                        case "KUNG":
+                            parseConditionalStatement();
+                            break;
                         case "KATAPUSAN":
-                            return;
+                            position++; // Skip KATAPUSAN and proceed
+                            return;     // Or return to end parsing
                         default:
                             ErrorHandler.handleUnexpectedKeyword(token.value);
                     }
@@ -54,6 +57,113 @@ public class Parser {
                 default:
                     ErrorHandler.handleUnexpectedToken(token.type, token.value);
             }
+        }
+    }
+
+    private void parseConditionalStatement() {
+        position++; // Skip KUNG keyword
+
+        // Check for opening parenthesis
+        if (position >= tokens.size() || !tokens.get(position).value.equals("(")) {
+            ErrorHandler.handleExpectedParenthesisAfterKung();
+        }
+        position++; // Skip opening parenthesis
+
+        // Parse boolean condition expression
+        Object condition = parseBooleanExpression();
+
+        // Look for PUNDOK keyword
+        if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.KEYWORD) ||
+                !tokens.get(position).value.equals("PUNDOK")) {
+            ErrorHandler.handleExpectedPundokKeyword();
+        }
+        position++; // Skip PUNDOK keyword
+
+        // Check for opening brace
+        if (position >= tokens.size()) {
+            ErrorHandler.handleExpectedOpeningBrace();
+        }
+
+        Token currentToken = tokens.get(position);
+        if (currentToken.type != TokenType.LEFTBRACE) {
+            ErrorHandler.handleExpectedOpeningBrace();
+        }
+        position++; // Skip opening brace
+
+        // Convert condition to boolean if needed
+        boolean conditionValue;
+        if (condition instanceof Boolean) {
+            conditionValue = (Boolean) condition;
+        } else if (condition instanceof Number) {
+            conditionValue = ((Number) condition).doubleValue() != 0;
+        } else if (condition instanceof String) {
+            conditionValue = !((String) condition).isEmpty();
+        } else {
+            conditionValue = condition != null;
+        }
+
+        int braceCount = 1; // Track nested PUNDOK blocks
+
+        if (conditionValue) {
+            // Execute statements inside the conditional block
+            while (position < tokens.size() && braceCount > 0) {
+                Token token = tokens.get(position);
+
+                if (token.type == TokenType.LEFTBRACE) {
+                    braceCount++;
+                    position++;
+                } else if (token.type == TokenType.RIGHTBRACE) {
+                    braceCount--;
+                    position++;
+                    if (braceCount == 0) break;
+                } else if (token.type == TokenType.KEYWORD) {
+                    switch (token.value) {
+                        case "MUGNA":
+                            parseVariableDeclaration();
+                            break;
+                        case "IPAKITA":
+                            parsePrintStatement();
+                            break;
+                        case "DAWAT":
+                            parseInputStatement();
+                            break;
+                        case "KUNG":
+                            parseConditionalStatement();
+                            break;
+                        default:
+                            ErrorHandler.handleUnexpectedToken(token);
+                            position++;
+                            break;
+                    }
+                } else if (token.type == TokenType.IDENTIFIER) {
+                    parseAssignment();
+                } else {
+                    // Unexpected token
+                    ErrorHandler.handleUnexpectedToken(token);
+                    position++;
+                }
+            }
+        } else {
+            // Skip entire block if condition is false
+            while (position < tokens.size() && braceCount > 0) {
+                Token token = tokens.get(position);
+
+                if (token.type == TokenType.LEFTBRACE) {
+                    braceCount++;
+                } else if (token.type == TokenType.RIGHTBRACE) {
+                    braceCount--;
+                    if (braceCount == 0) {
+                        position++; // Move past final closing brace
+                        break;
+                    }
+                }
+                position++;
+            }
+        }
+
+        // Ensure closing brace was found
+        if (braceCount > 0) {
+            ErrorHandler.handleMissingClosingBrace();
         }
     }
 
@@ -249,8 +359,19 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            if ((token.type == TokenType.KEYWORD || token.type == TokenType.COLON ||
-                    (token.type == TokenType.COMMA && operators.isEmpty())) && parenthesisCount == 0) {
+            // Check for ending conditions
+            if (parenthesisCount == 0 && (
+                    token.type == TokenType.KEYWORD ||
+                            token.type == TokenType.COLON ||
+                            (token.type == TokenType.COMMA && operators.isEmpty()) ||
+                            token.type == TokenType.RIGHTBRACE ||
+                            token.value.equals(")"))) {
+                // If we encounter a closing parenthesis here with parenthesisCount=0,
+                // it's part of the conditional wrapper, not the expression itself
+                if (token.value.equals(")") && parenthesisCount == 0) {
+                    position++; // Skip the closing parenthesis that ends the conditional
+                    break;
+                }
                 break;
             }
 
@@ -338,9 +459,11 @@ public class Parser {
             position++;
         }
 
+        // Process any remaining operators
         while (!operators.isEmpty()) {
             if (operators.peek().equals("(")) {
-                ErrorHandler.handleMismatchedParentheses();
+                operators.pop(); // Just skip any remaining open parentheses
+                continue;
             }
             processBooleanOperator(values, operators, valueTypes);
         }
@@ -505,6 +628,7 @@ public class Parser {
         }
     }
 
+
     private Object parseCharacterExpression() {
         if (position >= tokens.size()) {
             ErrorHandler.handleInvalidCharacterExpression();
@@ -660,7 +784,8 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            if (token.type == TokenType.KEYWORD) {
+            // Stop parsing if we hit the start of a new statement or a closing block
+            if (token.type == TokenType.KEYWORD || token.type == TokenType.RIGHTBRACE) {
                 break;
             }
 
@@ -669,7 +794,6 @@ public class Parser {
                 if (!inEscapeBracket) {
                     inEscapeBracket = true;
                 } else {
-                    // Already in escape mode — treat as symbol
                     output.append("[");
                 }
                 position++;
@@ -679,10 +803,8 @@ public class Parser {
             // Handle escape bracket end
             if (token.type == TokenType.RIGHTESCAPEBRACKET) {
                 if (inEscapeBracket) {
-                    // End escape mode
                     inEscapeBracket = false;
                 } else {
-                    // Outside escape — could be stray symbol
                     output.append("]");
                 }
                 position++;
@@ -691,7 +813,6 @@ public class Parser {
 
             if (inEscapeBracket) {
                 // Inside escape mode
-
                 if (token.type == TokenType.LEFTESCAPEBRACKET) {
                     output.append("[");
                 } else if (token.type == TokenType.RIGHTESCAPEBRACKET) {
@@ -719,7 +840,6 @@ public class Parser {
                 }
             } else {
                 // Outside escape brackets
-
                 switch (token.type) {
                     case IDENTIFIER:
                         if (!symbolTable.containsKey(token.value)) {
@@ -772,13 +892,14 @@ public class Parser {
         }
     }
 
+
     private int getBooleanPrecedence(String operator) {
         if (operator.equals("DILI")) return 5;
         if (operator.equals("<") || operator.equals(">") ||
                 operator.equals("<=") || operator.equals(">=") ||
                 operator.equals("==") || operator.equals("<>")) return 4;
         if (operator.equals("UG")) return 3;
-        if (operator.equals("OO")) return 2;
+        if (operator.equals("O")) return 2; // Fixed: "OO" changed to "O" for OR operator
         return 0;
     }
 
