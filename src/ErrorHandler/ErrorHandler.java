@@ -116,4 +116,12 @@ public class ErrorHandler {
         throw new RuntimeException("Type Error: Cannot convert '" + value + "' to type " + varType + " for variable '" + varName + "'");
     }
 
+    public static void handleInvalidInputFormat(String varName, String varType, String inputValue) {
+        throw new RuntimeException("sayop boang");
+    }
+
+    public static void handleInvalidBooleanInput(String inputValue) {
+        throw new RuntimeException("sayop boang");
+
+    }
 }

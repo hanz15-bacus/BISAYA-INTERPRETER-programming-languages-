@@ -1,9 +1,11 @@
+
 package parser;
 
 import lexer.Token;
 import lexer.TokenType;
 
 import java.util.*;
+import java.util.Scanner;
 import ErrorHandler.ErrorHandler;
 
 public class Parser {
@@ -11,12 +13,14 @@ public class Parser {
     private int position;
     public Map<String, Object> symbolTable;
     public Map<String, String> variableTypes;
+    private Scanner scanner;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
         this.position = 0;
         this.symbolTable = new HashMap<>();
         this.variableTypes = new HashMap<>();
+        this.scanner = new Scanner(System.in);
     }
 
     public void parse() {
@@ -35,6 +39,9 @@ public class Parser {
                         case "IPAKITA":
                             parsePrintStatement();
                             break;
+                        case "DAWAT":
+                            parseInputStatement();
+                            break;
                         case "KATAPUSAN":
                             return;
                         default:
@@ -46,6 +53,80 @@ public class Parser {
                     break;
                 default:
                     ErrorHandler.handleUnexpectedToken(token.type, token.value);
+            }
+        }
+    }
+
+    private void parseInputStatement() {
+        position++;
+
+        if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.COLON)) {
+            ErrorHandler.handleExpectedColonAfterKeyword("DAWAT");
+        }
+        position++;
+
+        List<String> variableNames = new ArrayList<>();
+
+        // Parse the list of variable names
+        while (position < tokens.size()) {
+            Token token = tokens.get(position);
+
+            if (token.type == TokenType.IDENTIFIER) {
+                String varName = token.value;
+
+                if (!variableTypes.containsKey(varName)) {
+                    ErrorHandler.handleUndefinedVariable(varName);
+                }
+
+                variableNames.add(varName);
+                position++;
+
+                // Check if there are more variables to read
+                if (position < tokens.size() && tokens.get(position).type == TokenType.COMMA) {
+                    position++; // Skip the comma
+                } else {
+                    break; // End of variable list
+                }
+            } else {
+                ErrorHandler.handleExpectedIdentifier();
+            }
+        }
+
+        // Now process the input for each variable
+        System.out.print("Enter values (separated by commas): ");
+        String input = scanner.nextLine();
+        String[] values = input.split(",");
+
+        if (values.length < variableNames.size()) {
+            ErrorHandler.handleInsufficientInputValues(variableNames.size(), values.length);
+        }
+
+        for (int i = 0; i < variableNames.size(); i++) {
+            String varName = variableNames.get(i);
+            String varType = variableTypes.get(varName);
+            String inputValue = values[i].trim();
+
+            try {
+                if (varType.equals("NUMERO")) {
+                    int numValue = Integer.parseInt(inputValue);
+                    symbolTable.put(varName, (double) numValue);
+                } else if (varType.equals("TIPIK")) {
+                    double floatValue = Double.parseDouble(inputValue);
+                    symbolTable.put(varName, floatValue);
+                } else if (varType.equals("TINUOD")) {
+                    if (inputValue.equalsIgnoreCase("OO")) {
+                        symbolTable.put(varName, true);
+                    } else if (inputValue.equalsIgnoreCase("DILI")) {
+                        symbolTable.put(varName, false);
+                    } else {
+                        ErrorHandler.handleInvalidBooleanInput(inputValue);
+                    }
+                } else {
+                    // Assume LETRA (string) type
+                    symbolTable.put(varName, inputValue);
+                }
+            } catch (NumberFormatException e) {
+                ErrorHandler.handleInvalidInputFormat(varName, varType, inputValue);
             }
         }
     }
@@ -565,7 +646,6 @@ public class Parser {
             values.push(applyOperator(a, b, op));
         }
     }
-
     private void parsePrintStatement() {
         position++;
 
@@ -584,22 +664,62 @@ public class Parser {
                 break;
             }
 
-            if (token.type == TokenType.LEFTESCAPEBRACKET && token.value.equals("[") && !inEscapeBracket) {
-                inEscapeBracket = true;
+            // Handle escape bracket start
+            if (token.type == TokenType.LEFTESCAPEBRACKET) {
+                if (!inEscapeBracket) {
+                    inEscapeBracket = true;
+                } else {
+                    // Already in escape mode — treat as symbol
+                    output.append("[");
+                }
                 position++;
                 continue;
             }
 
-            if (token.type == TokenType.RIGHTESCAPEBRACKET && token.value.equals("]") && inEscapeBracket) {
-                inEscapeBracket = false;
+            // Handle escape bracket end
+            if (token.type == TokenType.RIGHTESCAPEBRACKET) {
+                if (inEscapeBracket) {
+                    // End escape mode
+                    inEscapeBracket = false;
+                } else {
+                    // Outside escape — could be stray symbol
+                    output.append("]");
+                }
                 position++;
                 continue;
             }
 
             if (inEscapeBracket) {
-                // Inside escape brackets, print everything literally, including nested brackets
-                output.append(token.value);
+                // Inside escape mode
+
+                if (token.type == TokenType.LEFTESCAPEBRACKET) {
+                    output.append("[");
+                } else if (token.type == TokenType.RIGHTESCAPEBRACKET) {
+                    output.append("]");
+                } else if (token.type == TokenType.IDENTIFIER) {
+                    if (!symbolTable.containsKey(token.value)) {
+                        ErrorHandler.handleUndefinedVariable(token.value);
+                    }
+                    Object value = symbolTable.get(token.value);
+                    String varType = variableTypes.get(token.value);
+
+                    if (varType.equals("NUMERO")) {
+                        output.append(((Double) value).intValue());
+                    } else if (varType.equals("TIPIK")) {
+                        output.append(value);
+                    } else if (varType.equals("TINUOD")) {
+                        output.append((Boolean) value ? "OO" : "DILI");
+                    } else {
+                        output.append(value);
+                    }
+                } else if (token.type == TokenType.OPERATOR && token.value.equals("&")) {
+                    // Skip concatenation operator inside escape brackets
+                } else {
+                    output.append(token.value);
+                }
             } else {
+                // Outside escape brackets
+
                 switch (token.type) {
                     case IDENTIFIER:
                         if (!symbolTable.containsKey(token.value)) {
@@ -622,6 +742,7 @@ public class Parser {
                     case LETRA:
                     case NUMERO:
                     case TIPIK:
+                    case TINUOD:
                         output.append(token.value);
                         break;
 
@@ -630,20 +751,14 @@ public class Parser {
                             System.out.println(output.toString());
                             output = new StringBuilder();
                         } else if (token.value.equals("&")) {
-                            // Concatenation operator, doesn't need to append anything
+                            // Concatenation operator
                         } else {
-                            // For other operators, we don't append them outside brackets
-                            // They should be escaped with brackets to print literally
+                            output.append(token.value);
                         }
                         break;
 
-                    case LEFTESCAPEBRACKET:
-                    case RIGHTESCAPEBRACKET:
-                        // If brackets are encountered outside of escape mode
-                        // we don't append them to output
-                        break;
-
                     default:
+                        output.append(token.value);
                         break;
                 }
             }
@@ -656,7 +771,6 @@ public class Parser {
             System.out.println(finalOutput);
         }
     }
-
 
     private int getBooleanPrecedence(String operator) {
         if (operator.equals("DILI")) return 5;

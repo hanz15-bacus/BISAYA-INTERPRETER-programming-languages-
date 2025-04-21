@@ -56,6 +56,12 @@ public class Lexer {
                 continue;
             }
 
+            if (lookahead("DAWAT")) {
+                tokens.add(new Token(TokenType.KEYWORD, "DAWAT"));
+                position += 5;
+                continue;
+            }
+
             if (lookahead("OO") || lookahead("DILI")) {
                 tokens.add(new Token(TokenType.TINUOD, lookahead("OO") ? "OO" : "DILI"));
                 position += lookahead("OO") ? 2 : 4;
@@ -90,11 +96,6 @@ public class Lexer {
                 continue;
             }
 
-           /* if (currentChar == '[' || currentChar == ']') {
-                tokens.add(new Token(TokenType.OPERATOR, String.valueOf(currentChar)));
-                position++;
-                continue;
-            }*/
             if(currentChar == '['){
                 tokens.add(new Token(TokenType.LEFTESCAPEBRACKET, String.valueOf(currentChar)));
                 position++;
@@ -138,8 +139,6 @@ public class Lexer {
         }
         return tokens;
     }
-
-
 
     private String extractIdentifier() {
         StringBuilder identifier = new StringBuilder();
