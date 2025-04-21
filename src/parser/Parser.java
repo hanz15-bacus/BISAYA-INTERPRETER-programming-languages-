@@ -60,52 +60,61 @@ public class Parser {
         }
     }
 
+
     private void parseConditionalStatement() {
         position++; // Skip KUNG keyword
 
-        // Check for opening parenthesis
-        if (position >= tokens.size() || !tokens.get(position).value.equals("(")) {
+        // Check explicitly if the next token is an opening parenthesis
+        if (position >= tokens.size()) {
             ErrorHandler.handleExpectedParenthesisAfterKung();
+            return;
+        }
+
+        Token openParenToken = tokens.get(position);
+        if (openParenToken.type != TokenType.LPAREN) {
+            ErrorHandler.handleExpectedParenthesisAfterKung();
+            return;
         }
         position++; // Skip opening parenthesis
 
         // Parse boolean condition expression
         Object condition = parseBooleanExpression();
 
+        // Check explicitly for closing parenthesis
+        if (position >= tokens.size()) {
+            ErrorHandler.handleExpectedClosingParenthesis();
+            return;
+        }
+
+        Token closeParenToken = tokens.get(position);
+        if (closeParenToken.type != TokenType.RPAREN) {
+            ErrorHandler.handleExpectedClosingParenthesis();
+            return;
+        }
+        position++; // Skip closing parenthesis
+
+
+
         // Look for PUNDOK keyword
         if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.KEYWORD) ||
                 !tokens.get(position).value.equals("PUNDOK")) {
             ErrorHandler.handleExpectedPundokKeyword();
+            return;
         }
         position++; // Skip PUNDOK keyword
 
         // Check for opening brace
-        if (position >= tokens.size()) {
+        if (position >= tokens.size() || tokens.get(position).type != TokenType.LEFTBRACE) {
             ErrorHandler.handleExpectedOpeningBrace();
-        }
-
-        Token currentToken = tokens.get(position);
-        if (currentToken.type != TokenType.LEFTBRACE) {
-            ErrorHandler.handleExpectedOpeningBrace();
+            return;
         }
         position++; // Skip opening brace
 
-        // Convert condition to boolean if needed
-        boolean conditionValue;
-        if (condition instanceof Boolean) {
-            conditionValue = (Boolean) condition;
-        } else if (condition instanceof Number) {
-            conditionValue = ((Number) condition).doubleValue() != 0;
-        } else if (condition instanceof String) {
-            conditionValue = !((String) condition).isEmpty();
-        } else {
-            conditionValue = condition != null;
-        }
-
-        int braceCount = 1; // Track nested PUNDOK blocks
+        boolean conditionValue = convertToBoolean(condition);
+        int braceCount = 1;
 
         if (conditionValue) {
-            // Execute statements inside the conditional block
+            // Execute the if-block
             while (position < tokens.size() && braceCount > 0) {
                 Token token = tokens.get(position);
 
@@ -116,56 +125,136 @@ public class Parser {
                     braceCount--;
                     position++;
                     if (braceCount == 0) break;
-                } else if (token.type == TokenType.KEYWORD) {
-                    switch (token.value) {
-                        case "MUGNA":
-                            parseVariableDeclaration();
-                            break;
-                        case "IPAKITA":
-                            parsePrintStatement();
-                            break;
-                        case "DAWAT":
-                            parseInputStatement();
-                            break;
-                        case "KUNG":
-                            parseConditionalStatement();
-                            break;
-                        default:
-                            ErrorHandler.handleUnexpectedToken(token);
-                            position++;
-                            break;
-                    }
-                } else if (token.type == TokenType.IDENTIFIER) {
-                    parseAssignment();
                 } else {
-                    // Unexpected token
-                    ErrorHandler.handleUnexpectedToken(token);
-                    position++;
+                    parseStatement(token);
                 }
             }
+
+            // Skip KUNG WALA block if present
+            if (position < tokens.size() &&
+                    position + 1 < tokens.size() &&
+                    tokens.get(position).value.equals("KUNG") &&
+                    tokens.get(position + 1).value.equals("WALA")) {
+                position += 2; // skip "KUNG WALA"
+                skipElseBlock();
+            }
         } else {
-            // Skip entire block if condition is false
+            // Skip the if-block
             while (position < tokens.size() && braceCount > 0) {
                 Token token = tokens.get(position);
-
                 if (token.type == TokenType.LEFTBRACE) {
                     braceCount++;
                 } else if (token.type == TokenType.RIGHTBRACE) {
                     braceCount--;
-                    if (braceCount == 0) {
-                        position++; // Move past final closing brace
-                        break;
-                    }
                 }
                 position++;
             }
+
+            // Check if there's an else block
+            if (position < tokens.size() &&
+                    position + 1 < tokens.size() &&
+                    tokens.get(position).value.equals("KUNG") &&
+                    tokens.get(position + 1).value.equals("WALA")) {
+                position += 2; // skip "KUNG WALA"
+
+                // Expect and skip PUNDOK
+                if (position >= tokens.size() || !tokens.get(position).value.equals("PUNDOK")) {
+                    ErrorHandler.handleExpectedPundokKeyword();
+                    return;
+                }
+                position++;
+
+                if (position >= tokens.size() || tokens.get(position).type != TokenType.LEFTBRACE) {
+                    ErrorHandler.handleExpectedOpeningBrace();
+                    return;
+                }
+                position++;
+
+                braceCount = 1;
+
+                // Execute else-block
+                while (position < tokens.size() && braceCount > 0) {
+                    Token token = tokens.get(position);
+
+                    if (token.type == TokenType.LEFTBRACE) {
+                        braceCount++;
+                        position++;
+                    } else if (token.type == TokenType.RIGHTBRACE) {
+                        braceCount--;
+                        position++;
+                        if (braceCount == 0) break;
+                    } else {
+                        parseStatement(token);
+                    }
+                }
+
+                if (braceCount > 0) {
+                    ErrorHandler.handleMissingClosingBrace();
+                }
+            }
+        }
+    }
+
+
+    private boolean convertToBoolean(Object value) {
+        if (value instanceof Boolean) return (Boolean) value;
+        if (value instanceof Number) return ((Number) value).doubleValue() != 0;
+        if (value instanceof String) return !((String) value).isEmpty();
+        return value != null;
+    }
+
+    private void parseStatement(Token token) {
+        switch (token.value) {
+            case "MUGNA":
+                parseVariableDeclaration();
+                break;
+            case "IPAKITA":
+                parsePrintStatement();
+                break;
+            case "DAWAT":
+                parseInputStatement();
+                break;
+            case "KUNG":
+                parseConditionalStatement();
+                break;
+            default:
+                if (token.type == TokenType.IDENTIFIER) {
+                    parseAssignment();
+                } else {
+                    ErrorHandler.handleUnexpectedToken(token);
+                }
+        }
+        // Remove the position increment from here to avoid skipping tokens
+    }
+
+    private void skipElseBlock() {
+        if (position >= tokens.size() || !tokens.get(position).value.equals("PUNDOK")) {
+            ErrorHandler.handleExpectedPundokKeyword();
+        }
+        position++;
+
+        if (position >= tokens.size() || tokens.get(position).type != TokenType.LEFTBRACE) {
+            ErrorHandler.handleExpectedOpeningBrace();
+        }
+        position++;
+
+        int braceCount = 1;
+        while (position < tokens.size() && braceCount > 0) {
+            Token token = tokens.get(position);
+            if (token.type == TokenType.LEFTBRACE) {
+                braceCount++;
+            } else if (token.type == TokenType.RIGHTBRACE) {
+                braceCount--;
+            }
+            position++;
         }
 
-        // Ensure closing brace was found
         if (braceCount > 0) {
             ErrorHandler.handleMissingClosingBrace();
         }
     }
+
+
 
     private void parseInputStatement() {
         position++;
@@ -349,143 +438,140 @@ public class Parser {
         symbolTable.put(varName, value);
     }
 
-    private Object parseBooleanExpression() {
-        Stack<Object> values = new Stack<>();
-        Stack<String> operators = new Stack<>();
-        Stack<String> valueTypes = new Stack<>();
-        boolean expectOperand = true;
-        int parenthesisCount = 0;
+        private Object parseBooleanExpression() {
+            Stack<Object> values = new Stack<>();
+            Stack<String> operators = new Stack<>();
+            Stack<String> valueTypes = new Stack<>();
+            boolean expectOperand = true;
+            int parenthesisCount = 0;
 
-        while (position < tokens.size()) {
-            Token token = tokens.get(position);
+            while (position < tokens.size()) {
+                Token token = tokens.get(position);
 
-            // Check for ending conditions
-            if (parenthesisCount == 0 && (
-                    token.type == TokenType.KEYWORD ||
-                            token.type == TokenType.COLON ||
-                            (token.type == TokenType.COMMA && operators.isEmpty()) ||
-                            token.type == TokenType.RIGHTBRACE ||
-                            token.value.equals(")"))) {
-                // If we encounter a closing parenthesis here with parenthesisCount=0,
-                // it's part of the conditional wrapper, not the expression itself
-                if (token.value.equals(")") && parenthesisCount == 0) {
-                    position++; // Skip the closing parenthesis that ends the conditional
+                // Handle LPAREN and RPAREN token types
+                if (token.type == TokenType.RPAREN && parenthesisCount == 0) {
+                    // Found the closing parenthesis of the condition, don't consume it here
                     break;
                 }
-                break;
-            }
 
-            if (expectOperand) {
-                if (token.type == TokenType.TINUOD) {
-                    if (token.value.equals("OO")) {
-                        values.push(true);
-                        valueTypes.push("TINUOD");
-                    } else if (token.value.equals("DILI")) {
-                        values.push(false);
-                        valueTypes.push("TINUOD");
-                    } else {
-                        ErrorHandler.handleInvalidBooleanLiteral(token.value);
-                    }
-                    expectOperand = false;
-                } else if (token.type == TokenType.LETRA) {
-                    if (token.value.equals("OO")) {
-                        values.push(true);
-                        valueTypes.push("TINUOD");
-                    } else if (token.value.equals("DILI")) {
-                        values.push(false);
-                        valueTypes.push("TINUOD");
-                    } else {
-                        ErrorHandler.handleInvalidBooleanLiteral(token.value);
-                    }
-                    expectOperand = false;
-                } else if (token.type == TokenType.NUMERO || token.type == TokenType.TIPIK) {
-                    values.push(Double.parseDouble(token.value));
-                    valueTypes.push("NUMERO");
-                    expectOperand = false;
-                } else if (token.type == TokenType.IDENTIFIER) {
-                    if (!symbolTable.containsKey(token.value)) {
-                        ErrorHandler.handleUndefinedVariable(token.value);
-                    }
-                    Object value = symbolTable.get(token.value);
-                    String type = variableTypes.get(token.value);
-
-                    values.push(value);
-                    valueTypes.push(type);
-                    expectOperand = false;
-                } else if (token.value.equals("DILI")) {
-                    operators.push("DILI");
-                    expectOperand = true;
-                } else if (token.value.equals("(")) {
-                    operators.push("(");
-                    parenthesisCount++;
-                    expectOperand = true;
-                } else {
-                    ErrorHandler.handleExpectedValue(token);
-                }
-            } else {
-                if (token.value.equals(")")) {
-                    while (!operators.isEmpty() && !operators.peek().equals("(")) {
-                        processBooleanOperator(values, operators, valueTypes);
-                    }
-
-                    if (!operators.isEmpty() && operators.peek().equals("(")) {
-                        operators.pop();
-                        parenthesisCount--;
-                    } else {
-                        ErrorHandler.handleMismatchedParentheses();
-                    }
-                    expectOperand = false;
-                } else if (token.value.equals("UG") || token.value.equals("O")) {
-                    while (!operators.isEmpty() && !operators.peek().equals("(") &&
-                            getBooleanPrecedence(operators.peek()) >= getBooleanPrecedence(token.value)) {
-                        processBooleanOperator(values, operators, valueTypes);
-                    }
-                    operators.push(token.value);
-                    expectOperand = true;
-                } else if (token.type == TokenType.OPERATOR &&
-                        (token.value.equals("<") || token.value.equals(">") ||
-                                token.value.equals("<=") || token.value.equals(">=") ||
-                                token.value.equals("==") || token.value.equals("<>"))) {
-                    while (!operators.isEmpty() && !operators.peek().equals("(") &&
-                            getBooleanPrecedence(operators.peek()) >= getBooleanPrecedence(token.value)) {
-                        processBooleanOperator(values, operators, valueTypes);
-                    }
-                    operators.push(token.value);
-                    expectOperand = true;
-                } else {
+                if (parenthesisCount == 0 && (
+                        token.type == TokenType.KEYWORD ||
+                                token.type == TokenType.COLON ||
+                                (token.type == TokenType.COMMA && operators.isEmpty()) ||
+                                token.type == TokenType.RIGHTBRACE)) {
                     break;
                 }
+
+                if (expectOperand) {
+                    if (token.type == TokenType.TINUOD) {
+                        if (token.value.equals("OO")) {
+                            values.push(true);
+                            valueTypes.push("TINUOD");
+                        } else if (token.value.equals("DILI")) {
+                            values.push(false);
+                            valueTypes.push("TINUOD");
+                        } else {
+                            ErrorHandler.handleInvalidBooleanLiteral(token.value);
+                        }
+                        expectOperand = false;
+                    } else if (token.type == TokenType.LETRA) {
+                        if (token.value.equals("OO")) {
+                            values.push(true);
+                            valueTypes.push("TINUOD");
+                        } else if (token.value.equals("DILI")) {
+                            values.push(false);
+                            valueTypes.push("TINUOD");
+                        } else {
+                            ErrorHandler.handleInvalidBooleanLiteral(token.value);
+                        }
+                        expectOperand = false;
+                    } else if (token.type == TokenType.NUMERO || token.type == TokenType.TIPIK) {
+                        values.push(Double.parseDouble(token.value));
+                        valueTypes.push("NUMERO");
+                        expectOperand = false;
+                    } else if (token.type == TokenType.IDENTIFIER) {
+                        if (!symbolTable.containsKey(token.value)) {
+                            ErrorHandler.handleUndefinedVariable(token.value);
+                        }
+                        Object value = symbolTable.get(token.value);
+                        String type = variableTypes.get(token.value);
+
+                        values.push(value);
+                        valueTypes.push(type);
+                        expectOperand = false;
+                    } else if (token.value.equals("DILI")) {
+                        operators.push("DILI");
+                        expectOperand = true;
+                    } else if (token.type == TokenType.LPAREN) {
+                        operators.push("(");
+                        parenthesisCount++;
+                        expectOperand = true;
+                    } else {
+                        ErrorHandler.handleExpectedValue(token);
+                    }
+                } else {
+                    if (token.type == TokenType.RPAREN) {
+                        while (!operators.isEmpty() && !operators.peek().equals("(")) {
+                            processBooleanOperator(values, operators, valueTypes);
+                        }
+
+                        if (!operators.isEmpty() && operators.peek().equals("(")) {
+                            operators.pop();
+                            parenthesisCount--;
+                        } else {
+                            ErrorHandler.handleMismatchedParentheses();
+                        }
+                        expectOperand = false;
+                    } else if (token.value.equals("UG") || token.value.equals("O")) {
+                        while (!operators.isEmpty() && !operators.peek().equals("(") &&
+                                getBooleanPrecedence(operators.peek()) >= getBooleanPrecedence(token.value)) {
+                            processBooleanOperator(values, operators, valueTypes);
+                        }
+                        operators.push(token.value);
+                        expectOperand = true;
+                    } else if (token.type == TokenType.OPERATOR &&
+                            (token.value.equals("<") || token.value.equals(">") ||
+                                    token.value.equals("<=") || token.value.equals(">=") ||
+                                    token.value.equals("==") || token.value.equals("<>"))) {
+                        while (!operators.isEmpty() && !operators.peek().equals("(") &&
+                                getBooleanPrecedence(operators.peek()) >= getBooleanPrecedence(token.value)) {
+                            processBooleanOperator(values, operators, valueTypes);
+                        }
+                        operators.push(token.value);
+                        expectOperand = true;
+                    } else {
+                        break;
+                    }
+                }
+                position++;
             }
-            position++;
-        }
 
-        // Process any remaining operators
-        while (!operators.isEmpty()) {
-            if (operators.peek().equals("(")) {
-                operators.pop(); // Just skip any remaining open parentheses
-                continue;
+            // Process any remaining operators
+            while (!operators.isEmpty()) {
+                if (operators.peek().equals("(")) {
+                    operators.pop(); // Just skip any remaining open parentheses
+                    continue;
+                }
+                processBooleanOperator(values, operators, valueTypes);
             }
-            processBooleanOperator(values, operators, valueTypes);
-        }
 
-        if (values.isEmpty()) {
-            ErrorHandler.handleInvalidExpression("empty boolean expression");
-        }
-
-        Object result = values.pop();
-        String resultType = valueTypes.pop();
-
-        if (!resultType.equals("TINUOD")) {
-            if (resultType.equals("NUMERO") || resultType.equals("TIPIK")) {
-                return ((Number) result).doubleValue() != 0;
-            } else {
-                return !String.valueOf(result).isEmpty();
+            if (values.isEmpty()) {
+                ErrorHandler.handleInvalidExpression("empty boolean expression");
             }
+
+            Object result = values.pop();
+            String resultType = valueTypes.pop();
+
+            if (!resultType.equals("TINUOD")) {
+                if (resultType.equals("NUMERO") || resultType.equals("TIPIK")) {
+                    return ((Number) result).doubleValue() != 0;
+                } else {
+                    return !String.valueOf(result).isEmpty();
+                }
+            }
+
+            return result;
         }
-
-        return result;
-    }
-
     private void processBooleanOperator(Stack<Object> values, Stack<String> operators, Stack<String> valueTypes) {
         String op = operators.pop();
 
@@ -834,7 +920,6 @@ public class Parser {
                         output.append(value);
                     }
                 } else if (token.type == TokenType.OPERATOR && token.value.equals("&")) {
-                    // Skip concatenation operator inside escape brackets
                 } else {
                     output.append(token.value);
                 }

@@ -1,6 +1,6 @@
 SUGOD
-MUGNA TIPIK num, square
-DAWAT: num
-square = num * num
-IPAKITA: square
+MUGNA NUMERO a=100, b=200, c=300
+MUGNA TINUOD d=”DILI”
+d = (a < b UG c <>200)
+IPAKITA: d
 KATAPUSAN
