@@ -224,7 +224,6 @@ public class Parser {
                     ErrorHandler.handleUnexpectedToken(token);
                 }
         }
-        // Remove the position increment from here to avoid skipping tokens
     }
 
     private void skipElseBlock() {
@@ -448,9 +447,7 @@ public class Parser {
             while (position < tokens.size()) {
                 Token token = tokens.get(position);
 
-                // Handle LPAREN and RPAREN token types
                 if (token.type == TokenType.RPAREN && parenthesisCount == 0) {
-                    // Found the closing parenthesis of the condition, don't consume it here
                     break;
                 }
 
@@ -546,10 +543,10 @@ public class Parser {
                 position++;
             }
 
-            // Process any remaining operators
+            // Process ang nabilin na operators
             while (!operators.isEmpty()) {
                 if (operators.peek().equals("(")) {
-                    operators.pop(); // Just skip any remaining open parentheses
+                    operators.pop(); // para mo skip remaining parenthesis
                     continue;
                 }
                 processBooleanOperator(values, operators, valueTypes);
@@ -870,7 +867,6 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            // Stop parsing if we hit the start of a new statement or a closing block
             if (token.type == TokenType.KEYWORD || token.type == TokenType.RIGHTBRACE) {
                 break;
             }
@@ -924,7 +920,6 @@ public class Parser {
                     output.append(token.value);
                 }
             } else {
-                // Outside escape brackets
                 switch (token.type) {
                     case IDENTIFIER:
                         if (!symbolTable.containsKey(token.value)) {
