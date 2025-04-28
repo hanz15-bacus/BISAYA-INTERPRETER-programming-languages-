@@ -94,11 +94,11 @@ public class Parser {
 //        System.out.println("current token value: " + currentToken.getValue());
 
         if(currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("ALANG")){
-            System.out.println("parsing ALANG");
+//            System.out.println("parsing ALANG");
             nextPosition();
 
             if(currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("SA")) {
-                System.out.println("parsing SA");
+//                System.out.println("parsing SA");
                 keyword = currentToken.getValue();
                 nextPosition();
 
@@ -106,7 +106,7 @@ public class Parser {
                     ErrorHandler.handleExpectedSymbolAfterToken("(", keyword);
                     return;
                 }
-                System.out.println("parsing (");
+//                System.out.println("parsing (");
                 nextPosition();
                 parseLoopCondition();
 
@@ -114,11 +114,11 @@ public class Parser {
                     ErrorHandler.handleExpectedClosingParenthesis();
                     return;
                 }
-                System.out.println("parsing )");
+//                System.out.println("parsing )");
                 nextPosition();
 
                 if (currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("PUNDOK")) {
-                    System.out.println("parsing PUNDOK");
+//                    System.out.println("parsing PUNDOK");
                     keyword = currentToken.getValue();
                     nextPosition();
 
@@ -126,11 +126,13 @@ public class Parser {
                         ErrorHandler.handleExpectedSymbolAfterToken("{", keyword);
                         return;
                     }
-                    System.out.println("parsing {");
-                    parseLoopBody();
-//                    System.out.println("current token type: " + currentToken.getType());
-//                    System.out.println("current token value: " + currentToken.getValue());
+//                    System.out.println("parsing {");
+                    System.out.println("current token type: " + currentToken.getType());
+                    System.out.println("current token value: " + currentToken.getValue());
                     nextPosition();
+                    parseStatement(currentToken);
+
+
 //                    System.out.println("current token type: " + currentToken.getType());
 //                    System.out.println("current token value: " + currentToken.getValue());
 //                    parseLoopBody();
@@ -139,8 +141,8 @@ public class Parser {
                         ErrorHandler.handleExpectedClosingBrace();
                         return;
                     }
-                    System.out.println("parsing }");
-                    nextPosition();
+//                    System.out.println("parsing }");
+//                    nextPosition();
                 }else{
                     ErrorHandler.handleExpectedKeyword("PUNDOK");
                     return;
@@ -153,13 +155,116 @@ public class Parser {
     }
 
     private void parseLoopCondition(){
-        System.out.println("condition wala pa");
-        return;
+        String initial = "";
+        String condition = "";
+        String update = "";
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            initial = parseInitialization();
+            System.out.println("Initialization: " + initial);
+        }
+        nextPosition();
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            condition = parseCondition();
+            System.out.println("Condition: " + condition);
+        }
+        nextPosition();
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            update = parseUpdate();
+            System.out.println("Update: " + update);
+        }
     }
+
+    private String parseInitialization() {
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            String varName = currentToken.getValue();
+            nextPosition();
+
+            if (currentToken.getType() == TokenType.OPERATOR && currentToken.getValue().equals("=")) {
+                nextPosition();
+
+                if (currentToken.getType() == TokenType.NUMERO) {
+                    String value = currentToken.getValue();
+                    nextPosition();
+                    return varName + "=" + value;
+                } else {
+                    ErrorHandler.handleExpectedKeyword("Must be a number value.");
+                }
+            } else {
+                ErrorHandler.handleExpectedKeyword("Must be an initialization sign (=).");
+            }
+        }
+        return "";
+    }
+
+    private String parseCondition() {
+        String condition = "";
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            String varName = currentToken.getValue();
+            nextPosition();
+
+            if (currentToken.getType() == TokenType.OPERATOR) {
+                String operator = currentToken.getValue();
+                nextPosition();
+
+                if (currentToken.getType() == TokenType.NUMERO) {
+                    String value = currentToken.getValue();
+                    nextPosition();
+                    condition = varName + operator + value;
+                } else {
+                    ErrorHandler.handleExpectedKeyword("Must be a number value.");
+                }
+            }
+        }
+
+        return condition;
+    }
+
+    private String parseUpdate() {
+        String update = "";
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            String varName = currentToken.getValue();
+            nextPosition();
+
+            if (currentToken.getType() == TokenType.OPERATOR) {
+                String operator1 = currentToken.getValue();
+                nextPosition();
+                String operator2 = currentToken.getValue();
+                String operator = operator1 + operator2;
+
+                if (operator.equals("++") || operator.equals("--")) {
+                    nextPosition();
+                    update = varName + operator;
+                } else {
+                    ErrorHandler.handleUnexpectedKeyword("Invalid increment or decrement operator.");
+                }
+            }
+        }
+
+        return update;
+    }
+
 
     private void parseLoopBody(){
         System.out.println("sulod body wala pa");
+        while (currentToken.getType() != TokenType.RIGHTBRACE && position < tokens.size()) {
+            if (currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("IPAKITA")) {
+                nextPosition();
+                parsePrintStatement();
+            } else {
+                ErrorHandler.handleUnexpectedToken(currentToken.getType(), currentToken.getValue());
+                break;
+            }
+        }
+
+        System.out.println("current token type: " + currentToken.getType());
+        System.out.println("current token value: " + currentToken.getValue());
     }
+
 
     private void parseConditionalStatement() {
         position++; // Skip KUNG keyword
@@ -955,8 +1060,14 @@ public class Parser {
     }
     private void parsePrintStatement() {
         position++;
+        System.out.println("current token type: " + currentToken.getType());
+        System.out.println("current token value: " + tokens.get(position).type);
+        System.out.println("position: " + position);
+        System.out.println("token size: " + tokens.size());
 
         if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.COLON)) {
+            System.out.println("current token type: " + currentToken.getType());
+            System.out.println("current token value: " + tokens.get(position).type);
             ErrorHandler.handleExpectedColonAfterKeyword("IPAKITA");
         }
         position++;
