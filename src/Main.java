@@ -34,6 +34,8 @@ public class Main {
             }
             */
             System.out.println("\nExecuting Bisaya++ Code:\n");
+            System.out.println();
+            System.out.println("no error");
             Parser parser = new Parser(tokens);
             parser.parse();
         } catch (IOException e) {

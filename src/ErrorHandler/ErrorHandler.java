@@ -167,5 +167,19 @@ public class ErrorHandler {
     public static void handleUnexpectedToken(Token token) {
         throw new RuntimeException("Unexpected token: '" + token.value + "' of type " + token.type + ".");
     }
+    // Add these methods to your ErrorHandler class
 
+    public static void handleExpectedParenthesisAfterKungDili() {
+        System.err.println("Error: Expected opening parenthesis after 'KUNG DILI'");
+        throw new RuntimeException("Syntax error: Expected opening parenthesis after 'KUNG DILI'");
+    }
+
+
+    public static void handleExpectedKungKeyword() {
+        System.out.println("errrrroorrrr handle");
+    }
+
+    public static void handleExpectedKatapusan() {
+        System.out.println("katapusan niga");
+    }
 }

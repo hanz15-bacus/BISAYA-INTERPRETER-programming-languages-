@@ -1,10 +1,15 @@
 SUGOD
-MUGNA NUMERO a
-MUGNA NUMERO b
-IPAKITA: "Ibutang ang unang numero:"
-DAWAT: a
-IPAKITA: "Ibutang ang ikaduhang numero:"
-DAWAT: b
-MUGNA NUMERO suma = a + b
-IPAKITA: "Ang suma kay " + suma
+MUGNA NUMERO purchase = 1200
+KUNG (purchase >= 1000)
+PUNDOK{
+    IPAKITA: "Eligible for 10% discount"
+}
+KUNG DILI (purchase >= 500)
+PUNDOK{
+    IPAKITA: "Eligible for 5% discount"
+}
+KUNG WALA
+PUNDOK{
+    IPAKITA: "Not eligible for any discount"
+}
 KATAPUSAN
