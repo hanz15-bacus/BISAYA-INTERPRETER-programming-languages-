@@ -78,6 +78,12 @@ public class Lexer {
                 continue;
             }
 
+            if (lookahead("COLON")) {
+                tokens.add(new Token(TokenType.KEYWORD, ":"));
+                position++;
+                continue;
+            }
+
             if (lookahead("ALANG")) {
                 tokens.add(new Token(TokenType.KEYWORD, "ALANG"));
                 position += 5;

@@ -108,7 +108,7 @@ public class Parser {
                 }
 //                System.out.println("parsing (");
                 nextPosition();
-                parseLoopCondition();
+                String[] loopCondition = parseLoopCondition();
 
                 if (currentToken.getType() != TokenType.RPAREN) {
                     ErrorHandler.handleExpectedClosingParenthesis();
@@ -127,18 +127,18 @@ public class Parser {
                         return;
                     }
 //                    System.out.println("parsing {");
-                    System.out.println("current token type: " + currentToken.getType());
-                    System.out.println("current token value: " + currentToken.getValue());
+//                    System.out.println("current token type: " + currentToken.getType());
+//                    System.out.println("current token value: " + currentToken.getValue());
                     nextPosition();
-                    parseStatement(currentToken);
+//                    parseStatement(currentToken);
 
 
 //                    System.out.println("current token type: " + currentToken.getType());
 //                    System.out.println("current token value: " + currentToken.getValue());
-//                    parseLoopBody();
+                    parseBodyLoop(loopCondition);
 
                     if (currentToken.getType() != TokenType.RIGHTBRACE) {
-                        ErrorHandler.handleExpectedClosingBrace();
+                        ErrorHandler.   handleExpectedClosingBrace();
                         return;
                     }
 //                    System.out.println("parsing }");
@@ -154,28 +154,107 @@ public class Parser {
         }
     }
 
-    private void parseLoopCondition(){
-        String initial = "";
-        String condition = "";
-        String update = "";
+    // for debugging rani
+    private void parseBodyLoop(String[] loopParts) {
+        String initValue = loopParts[0];
+        String conditionSign = loopParts[1];
+        String conditionLimit = loopParts[2];
+        String update = loopParts[3];
 
-        if (currentToken.getType() == TokenType.IDENTIFIER) {
-            initial = parseInitialization();
-            System.out.println("Initialization: " + initial);
-        }
-        nextPosition();
+        System.out.println("In Body Loop:");
+        System.out.println("Init: ctr=" + initValue);
+        System.out.println("Cond: ctr" + conditionSign + conditionLimit);
+        System.out.println("Update: ctr" + update);
 
-        if (currentToken.getType() == TokenType.IDENTIFIER) {
-            condition = parseCondition();
-            System.out.println("Condition: " + condition);
-        }
-        nextPosition();
+        int counter = Integer.parseInt(initValue);
+        int limit = Integer.parseInt(conditionLimit);
 
-        if (currentToken.getType() == TokenType.IDENTIFIER) {
-            update = parseUpdate();
-            System.out.println("Update: " + update);
+        while (evaluateCondition(counter, conditionSign, limit)) {
+            while (currentToken.getType() != TokenType.RIGHTBRACE) {
+                if (currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("IPAKITA")) {
+                    parseOutputStatement();
+//                    ari ta ani plano
+                } else {
+                    ErrorHandler.handleUnexpectedKeyword("Expected a statement inside loop body.");
+                    return;
+                }
+            }
+
+
+            if (update.equals("++")) {
+                counter++;
+            } else if (update.equals("--")) {
+                counter--;
+            }
         }
     }
+
+    private void parseOutputStatement() {
+        nextPosition();
+
+        if (currentToken.getType() == TokenType.COLON) {
+            nextPosition();
+
+            if (currentToken.getType() == TokenType.IDENTIFIER || currentToken.getType() == TokenType.NUMERO) {
+                String valueToPrint = currentToken.getValue();
+                System.out.println(valueToPrint);
+                nextPosition();
+            } else {
+                ErrorHandler.handleUnexpectedKeyword("Expected identifier or number after IPAKITA:");
+            }
+        } else {
+            ErrorHandler.handleExpectedSymbolAfterToken(":", "IPAKITA");
+        }
+    }
+
+    private boolean evaluateCondition(int counter, String operator, int limit) {
+        switch (operator) {
+            case "<":
+                return counter < limit;
+            case "<=":
+                return counter <= limit;
+            case ">":
+                return counter > limit;
+            case ">=":
+                return counter >= limit;
+            case "==":
+                return counter == limit;
+            case "<>":
+                return counter != limit;
+            default:
+                ErrorHandler.handleUnexpectedKeyword("Invalid loop operator: " + operator);
+                return false;
+        }
+    }
+
+    private String[] parseLoopCondition() {
+        String[] loopParts = new String[4];
+        String[] loopConditionPart;
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            loopParts[0] = parseInitialization();
+//            System.out.println("Initialization: " + loopParts[0]);
+        }
+        nextPosition();
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            loopConditionPart = parseCondition();
+
+            loopParts[1] = loopConditionPart[0];
+            loopParts[2] = loopConditionPart[1];
+
+//            System.out.println("Condition: " + loopParts[1] + " " + loopParts[2]);
+        }
+        nextPosition();
+
+        if (currentToken.getType() == TokenType.IDENTIFIER) {
+            loopParts[3] = parseUpdate();
+//            System.out.println("Update: " + loopParts[3]);
+        }
+
+        return loopParts;
+    }
+
 
     private String parseInitialization() {
         if (currentToken.getType() == TokenType.IDENTIFIER) {
@@ -188,7 +267,7 @@ public class Parser {
                 if (currentToken.getType() == TokenType.NUMERO) {
                     String value = currentToken.getValue();
                     nextPosition();
-                    return varName + "=" + value;
+                    return value;
                 } else {
                     ErrorHandler.handleExpectedKeyword("Must be a number value.");
                 }
@@ -199,8 +278,8 @@ public class Parser {
         return "";
     }
 
-    private String parseCondition() {
-        String condition = "";
+    private String[] parseCondition() {
+        String[] conditionParts = new String[2];
 
         if (currentToken.getType() == TokenType.IDENTIFIER) {
             String varName = currentToken.getValue();
@@ -208,19 +287,20 @@ public class Parser {
 
             if (currentToken.getType() == TokenType.OPERATOR) {
                 String operator = currentToken.getValue();
+                conditionParts[0] = operator;
                 nextPosition();
 
                 if (currentToken.getType() == TokenType.NUMERO) {
                     String value = currentToken.getValue();
+                    conditionParts[1] = value;
                     nextPosition();
-                    condition = varName + operator + value;
                 } else {
                     ErrorHandler.handleExpectedKeyword("Must be a number value.");
                 }
             }
         }
 
-        return condition;
+        return conditionParts;
     }
 
     private String parseUpdate() {
@@ -238,7 +318,7 @@ public class Parser {
 
                 if (operator.equals("++") || operator.equals("--")) {
                     nextPosition();
-                    update = varName + operator;
+                    update = operator;
                 } else {
                     ErrorHandler.handleUnexpectedKeyword("Invalid increment or decrement operator.");
                 }
@@ -1061,13 +1141,17 @@ public class Parser {
     private void parsePrintStatement() {
         position++;
         System.out.println("current token type: " + currentToken.getType());
-        System.out.println("current token value: " + tokens.get(position).type);
-        System.out.println("position: " + position);
-        System.out.println("token size: " + tokens.size());
+        System.out.println("current token value: " + currentToken.getValue());
+        position--;
+        System.out.println("current token position value: " + tokens.get(position).value);
+//        System.out.println("position: " + position);
+//        System.out.println("token size: " + tokens.size());
+        System.out.println("nakasud parse print");
 
-        if (position >= tokens.size() || !tokens.get(position).type.equals(TokenType.COLON)) {
+        if (position >= tokens.size() || currentToken.getValue().equals("COLON")) {
             System.out.println("current token type: " + currentToken.getType());
-            System.out.println("current token value: " + tokens.get(position).type);
+            System.out.println("current token value: " + currentToken.getValue());
+            System.out.println("current token position value: " + tokens.get(position).value);
             ErrorHandler.handleExpectedColonAfterKeyword("IPAKITA");
         }
         position++;
