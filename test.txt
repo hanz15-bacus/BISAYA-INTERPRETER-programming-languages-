@@ -1,10 +1,6 @@
 SUGOD
-MUGNA NUMERO a
-MUGNA NUMERO b
-IPAKITA: "Ibutang ang unang numero:"
-DAWAT: a
-IPAKITA: "Ibutang ang ikaduhang numero:"
-DAWAT: b
-MUGNA NUMERO suma = a + b
-IPAKITA: "Ang suma kay " + suma
+    ALANG SA()
+    PUNDOK{
+
+    }
 KATAPUSAN

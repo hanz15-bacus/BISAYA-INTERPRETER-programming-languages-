@@ -10,6 +10,7 @@ import ErrorHandler.ErrorHandler;
 public class Parser {
     private List<Token> tokens;
     private int position;
+    private Token currentToken;
     public Map<String, Object> symbolTable;
     public Map<String, String> variableTypes;
     private Scanner scanner;
@@ -20,6 +21,7 @@ public class Parser {
         this.symbolTable = new HashMap<>();
         this.variableTypes = new HashMap<>();
         this.scanner = new Scanner(System.in);
+        this.currentToken = tokens.get(position);
     }
 
     public void parse() {
@@ -44,6 +46,16 @@ public class Parser {
                         case "KUNG":
                             parseConditionalStatement();
                             break;
+                        case "ALANG":
+                            if (peekNextTokenIs("SA")) {
+                                parseLoopStatement();
+                            } else {
+                                ErrorHandler.handleExpectedKeyword("SA");
+                            }
+                            break;
+                        case "SA":
+                            ErrorHandler.handleUnexpectedKeyword("SA");
+                            break;
                         case "KATAPUSAN":
                             position++; // Skip KATAPUSAN and proceed
                             return;     // Or return to end parsing
@@ -60,6 +72,94 @@ public class Parser {
         }
     }
 
+    private void nextPosition(){
+        currentToken = tokens.get(position);
+        position++;
+    }
+
+    private boolean peekNextTokenIs(String value) {
+        if (position + 1 < tokens.size()) {
+            Token nextToken = tokens.get(position + 1);
+            return nextToken.value.equals(value);
+        }
+        return false;
+    }
+
+    private void parseLoopStatement(){
+        String keyword = "";
+//        System.out.println(position);
+        nextPosition();
+
+//        System.out.println("current token type: " + currentToken.getType());
+//        System.out.println("current token value: " + currentToken.getValue());
+
+        if(currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("ALANG")){
+            System.out.println("parsing ALANG");
+            nextPosition();
+
+            if(currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("SA")) {
+                System.out.println("parsing SA");
+                keyword = currentToken.getValue();
+                nextPosition();
+
+                if(currentToken.getType() != TokenType.LPAREN){
+                    ErrorHandler.handleExpectedSymbolAfterToken("(", keyword);
+                    return;
+                }
+                System.out.println("parsing (");
+                nextPosition();
+                parseLoopCondition();
+
+                if (currentToken.getType() != TokenType.RPAREN) {
+                    ErrorHandler.handleExpectedClosingParenthesis();
+                    return;
+                }
+                System.out.println("parsing )");
+                nextPosition();
+
+                if (currentToken.getType() == TokenType.KEYWORD && currentToken.getValue().equals("PUNDOK")) {
+                    System.out.println("parsing PUNDOK");
+                    keyword = currentToken.getValue();
+                    nextPosition();
+
+                    if(currentToken.getType() != TokenType.LEFTBRACE){
+                        ErrorHandler.handleExpectedSymbolAfterToken("{", keyword);
+                        return;
+                    }
+                    System.out.println("parsing {");
+                    parseLoopBody();
+//                    System.out.println("current token type: " + currentToken.getType());
+//                    System.out.println("current token value: " + currentToken.getValue());
+                    nextPosition();
+//                    System.out.println("current token type: " + currentToken.getType());
+//                    System.out.println("current token value: " + currentToken.getValue());
+//                    parseLoopBody();
+
+                    if (currentToken.getType() != TokenType.RIGHTBRACE) {
+                        ErrorHandler.handleExpectedClosingBrace();
+                        return;
+                    }
+                    System.out.println("parsing }");
+                    nextPosition();
+                }else{
+                    ErrorHandler.handleExpectedKeyword("PUNDOK");
+                    return;
+                }
+
+                System.out.println("current token type: " + currentToken.getType());
+                System.out.println("current token value: " + currentToken.getValue());
+            }
+        }
+    }
+
+    private void parseLoopCondition(){
+        System.out.println("condition wala pa");
+        return;
+    }
+
+    private void parseLoopBody(){
+        System.out.println("sulod body wala pa");
+    }
 
     private void parseConditionalStatement() {
         position++; // Skip KUNG keyword

@@ -8,6 +8,10 @@ public class ErrorHandler {
         throw new RuntimeException("Unexpected keyword: " + keyword);
     }
 
+    public static void handleExpectedKeyword(String keyword) {
+        throw new RuntimeException("Expected keyword: " + keyword);
+    }
+
 
     public static void handleUnexpectedToken(TokenType type, String value) {
         throw new RuntimeException("Unexpected token: " + type + " with value: " + value);
@@ -146,6 +150,10 @@ public class ErrorHandler {
 
     public static void handleExpectedParenthesisAfterKung() {
         throw new RuntimeException("Syntax error: Expected '(' after 'KUNG' keyword.");
+    }
+
+    public static void handleExpectedSymbolAfterToken(String paren, String keyword) {
+        throw new RuntimeException("Syntax error: Expected '"+ paren +"' after '"+ keyword +"' keyword.");
     }
 
     public static void handleNonBooleanCondition() {

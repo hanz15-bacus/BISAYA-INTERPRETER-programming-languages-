@@ -78,6 +78,18 @@ public class Lexer {
                 continue;
             }
 
+            if (lookahead("ALANG")) {
+                tokens.add(new Token(TokenType.KEYWORD, "ALANG"));
+                position += 5;
+                continue;
+            }
+
+            if (lookahead("SA")) {
+                tokens.add(new Token(TokenType.KEYWORD, "SA"));
+                position += 2;
+                continue;
+            }
+
             if (lookahead("MUGNA")) {
                 tokens.add(new Token(TokenType.KEYWORD, "MUGNA"));
                 position += 5;
