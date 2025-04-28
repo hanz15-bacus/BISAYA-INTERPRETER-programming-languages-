@@ -187,5 +187,6 @@ public class ErrorHandler {
     }
 
     public static void handleUnexpectedTokenAfterKung() {
+
     }
 }

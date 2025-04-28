@@ -1,15 +1,9 @@
 SUGOD
-MUGNA NUMERO purchase = 1200
-KUNG (purchase >= 1000)
+MUGNA NUMERO speed
+IPAKITA: "Enter speed: "
+DAWAT: speed
+KUNG (speed > 80)
 PUNDOK{
-    IPAKITA: "Eligible for 10% discount"
-}
-KUNG DILI (purchase >= 500)
-PUNDOK{
-    IPAKITA: "Eligible for 5% discount"
-}
-KUNG WALA
-PUNDOK{
-    IPAKITA: "Not eligible for any discount"
+    IPAKITA: "Overspeeding detected"
 }
 KATAPUSAN
