@@ -18,4 +18,6 @@ public enum TokenType {
     LEFTBRACE,
     RIGHTBRACE,
     AMPERSAND,
+    MODULO,
+    PUNDOK,
 }

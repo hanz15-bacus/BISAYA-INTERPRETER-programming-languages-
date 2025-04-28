@@ -119,6 +119,11 @@ public class Lexer {
                 position += lookahead("OO") ? 2 : 4;
                 continue;
             }
+            if (lookahead("ALANG SA")) {
+                tokens.add(new Token(TokenType.KEYWORD, "ALANG SA"));
+                position += 8;
+                continue;
+            }
 
             if (Character.isLetter(currentChar) || currentChar == '_') {
                 String identifier = extractIdentifier();
@@ -147,6 +152,10 @@ public class Lexer {
                 tokens.add(new Token(TokenType.LETRA, extractCharacter()));
                 continue;
             }
+            if (currentChar == '%') {
+                tokens.add(new Token(TokenType.MODULO, extractCharacter()));
+                continue;
+            }
 
             if(currentChar == '['){
                 tokens.add(new Token(TokenType.LEFTESCAPEBRACKET, String.valueOf(currentChar)));
@@ -164,15 +173,17 @@ public class Lexer {
                 String twoChars = input.substring(position, position + 2);
                 if (twoChars.equals("<=") || twoChars.equals(">=") ||
                         twoChars.equals("==") || twoChars.equals("<>") ||
-                        twoChars.equals("&&") || twoChars.equals("&")) {
+                        twoChars.equals("&&") || twoChars.equals("&") ||
+                        twoChars.equals("++") || twoChars.equals("--")) {
                     tokens.add(new Token(TokenType.OPERATOR, twoChars));
                     position += 2;
                     continue;
                 }
             }
 
+
             // Handle other single character operators and symbols
-            if ("+-*/%$&#,.=<>".indexOf(currentChar) != -1) {
+            if ("+-*/$&#,.=<>".indexOf(currentChar) != -1) {
                 tokens.add(new Token(currentChar == ',' ? TokenType.COMMA : TokenType.OPERATOR, String.valueOf(currentChar)));
                 position++;
                 continue;

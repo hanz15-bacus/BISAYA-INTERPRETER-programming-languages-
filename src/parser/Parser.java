@@ -44,6 +44,9 @@ public class Parser {
                         case "KUNG":
                             parseConditionalStatement();
                             break;
+                        case "ALANG SA":
+                            parseForLoop();
+                            break;
                         case "KATAPUSAN":
                             position++; // Skip KATAPUSAN and proceed
                             return;     // Or return to end parsing
@@ -73,8 +76,15 @@ public class Parser {
     private boolean matchAndConsumeParen(char paren) {
         if (position < tokens.size()) {
             Token token = tokens.get(position);
-            if ((paren == '(' && (token.value.equals("(") || token.value.equals("\u0028"))) ||
-                    (paren == ')' && (token.value.equals(")") || token.value.equals("\u0029")))) {
+            // More robust check for different types of parentheses
+            if (paren == '(' && (token.type == TokenType.LPAREN ||
+                    token.value.equals("(") ||
+                    token.value.equals("\u0028"))) {
+                position++;
+                return true;
+            } else if (paren == ')' && (token.type == TokenType.RPAREN ||
+                    token.value.equals(")") ||
+                    token.value.equals("\u0029"))) {
                 position++;
                 return true;
             }
@@ -107,14 +117,23 @@ public class Parser {
             return;
         }
 
-        if (!matchAndConsumeParen('(')) {
+        // Check for opening parenthesis
+        if (position < tokens.size() &&
+                (tokens.get(position).type == TokenType.LPAREN || tokens.get(position).value.equals("("))) {
+            position++; // Manually consume the opening parenthesis
+        } else {
             ErrorHandler.handleExpectedParenthesisAfterKung();
             return;
         }
 
+        // Parse the condition
         Object condition = parseBooleanExpression();
 
-        if (!matchAndConsumeParen(')')) {
+        // Check for closing parenthesis
+        if (position < tokens.size() &&
+                (tokens.get(position).type == TokenType.RPAREN || tokens.get(position).value.equals(")"))) {
+            position++; // Manually consume the closing parenthesis
+        } else {
             ErrorHandler.handleExpectedClosingParenthesis();
             return;
         }
@@ -185,7 +204,6 @@ public class Parser {
     }
 
 
-    // Helper to execute a block of code
     private void executeBlock() {
         int braceCount = 1;
         while (position < tokens.size() && braceCount > 0) {
@@ -197,8 +215,38 @@ public class Parser {
             } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
                 braceCount--;
                 position++;
+                if (braceCount == 0) break; // Exit when reaching the closing brace of this block
             } else {
-                parseStatement(token);
+                // Only parse if we're still inside the block
+                if (braceCount > 0) {
+                    if (token.type == TokenType.KEYWORD) {
+                        switch (token.value) {
+                            case "MUGNA":
+                                parseVariableDeclaration();
+                                break;
+                            case "IPAKITA":
+                                parsePrintStatement();
+                                break;
+                            case "DAWAT":
+                                parseInputStatement();
+                                break;
+                            case "KUNG":
+                                parseConditionalStatement();
+                                break;
+                            case "ALANG SA":
+                                parseForLoop();
+                                break;
+                            default:
+                                position++; // Skip unrecognized keywords
+                        }
+                    } else if (token.type == TokenType.IDENTIFIER) {
+                        parseAssignment();
+                    } else {
+                        position++; // Skip other token types
+                    }
+                } else {
+                    position++;
+                }
             }
         }
     }
@@ -219,31 +267,57 @@ public class Parser {
     }
 
     private boolean convertToBoolean(Object value) {
-        if (value instanceof Boolean) return (Boolean) value;
-        if (value instanceof Number) return ((Number) value).doubleValue() != 0;
-        if (value instanceof String) return !((String) value).isEmpty();
-        return value != null;
+        if (value == null) return false;
+
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue() != 0;
+        }
+
+        if (value instanceof String) {
+            String strValue = (String) value;
+            if (strValue.equalsIgnoreCase("OO")) return true;
+            if (strValue.equalsIgnoreCase("DILI")) return false;
+            return !strValue.isEmpty();
+        }
+
+        return true; // Non-null objects default to true
     }
 
     private void parseStatement(Token token) {
-        switch (token.value) {
-            case "MUGNA":
-                parseVariableDeclaration();
-                break;
-            case "IPAKITA":
-                parsePrintStatement();
-                break;
-            case "DAWAT":
-                parseInputStatement();
-                break;
-            case "KUNG":
-                parseConditionalStatement();
-                break;
-            default:
-                if (token.type == TokenType.IDENTIFIER) {
-                    parseAssignment();
-                }
-                break;
+        if (token == null) {
+            position++; // Skip null tokens
+            return;
+        }
+
+        if (token.type == TokenType.KEYWORD) {
+            switch (token.value) {
+                case "MUGNA":
+                    parseVariableDeclaration();
+                    break;
+                case "IPAKITA":
+                    parsePrintStatement();
+                    break;
+                case "DAWAT":
+                    parseInputStatement();
+                    break;
+                case "KUNG":
+                    parseConditionalStatement();
+                    break;
+                case "ALANG SA":
+                    parseForLoop();
+                    break;
+                default:
+                    position++; // Skip unrecognized keywords
+                    break;
+            }
+        } else if (token.type == TokenType.IDENTIFIER) {
+            parseAssignment();
+        } else {
+            position++; // Skip other token types
         }
     }
 
@@ -400,25 +474,28 @@ public class Parser {
     }
 
     private void parseAssignment() {
-        List<String> varNames = new ArrayList<>();
-
         Token identifier = tokens.get(position);
         if (identifier.type != TokenType.IDENTIFIER) {
             ErrorHandler.handleExpectedIdentifier();
+            return; // Add a return here to prevent further processing
         }
 
         String varName = identifier.value;
         if (!variableTypes.containsKey(varName)) {
             ErrorHandler.handleUndefinedVariable(varName);
+            return; // Add a return here as well
         }
 
-        varNames.add(varName);
-        position++;
+        position++; // Move past the identifier
 
+        // Check if the next token is an equals sign
         if (position >= tokens.size() || !tokens.get(position).value.equals("=")) {
             ErrorHandler.handleExpectedEqualsAfterIdentifier();
+            return; // Add a return here to prevent the method from continuing after error
         }
-        position++;
+        position++; // Move past the equals sign
+
+        // Check for chained assignment (x = y = ...)
         if (position < tokens.size() && tokens.get(position).type == TokenType.IDENTIFIER) {
             int tempPosition = position;
             String nextVarName = tokens.get(tempPosition).value;
@@ -430,6 +507,7 @@ public class Parser {
 
                 if (!symbolTable.containsKey(nextVarName)) {
                     ErrorHandler.handleVariableHasNoValue(nextVarName);
+                    return;
                 }
 
                 Object value = symbolTable.get(nextVarName);
@@ -438,6 +516,7 @@ public class Parser {
 
                 if (!currentType.equals(nextType)) {
                     ErrorHandler.handleTypeMismatchInAssignment();
+                    return;
                 }
 
                 symbolTable.put(varName, value);
@@ -469,7 +548,9 @@ public class Parser {
         while (position < tokens.size()) {
             Token token = tokens.get(position);
 
-            if (token.type == TokenType.RPAREN && parenthesisCount == 0) {
+            // Check for end of expression with parenthesis count
+            if ((token.type == TokenType.RPAREN || token.value.equals(")")) && parenthesisCount == 0) {
+                // Don't consume the token, just exit
                 break;
             }
 
@@ -521,7 +602,7 @@ public class Parser {
                 } else if (token.value.equals("DILI")) {
                     operators.push("DILI");
                     expectOperand = true;
-                } else if (token.type == TokenType.LPAREN) {
+                } else if (token.type == TokenType.LPAREN || token.value.equals("(")) {
                     operators.push("(");
                     parenthesisCount++;
                     expectOperand = true;
@@ -529,7 +610,7 @@ public class Parser {
                     ErrorHandler.handleExpectedValue(token);
                 }
             } else {
-                if (token.type == TokenType.RPAREN) {
+                if (token.type == TokenType.RPAREN || token.value.equals(")")) {
                     while (!operators.isEmpty() && !operators.peek().equals("(")) {
                         processBooleanOperator(values, operators, valueTypes);
                     }
@@ -565,10 +646,10 @@ public class Parser {
             position++;
         }
 
-        // Process ang nabilin na operators
+        // Process remaining operators
         while (!operators.isEmpty()) {
             if (operators.peek().equals("(")) {
-                operators.pop(); // para mo skip remaining parenthesis
+                operators.pop(); // Skip remaining parenthesis
                 continue;
             }
             processBooleanOperator(values, operators, valueTypes);
@@ -887,6 +968,7 @@ public class Parser {
         boolean inEscapeBracket = false;
         boolean hasExpressionToEvaluate = false;
         int expressionStart = position;
+        boolean useNewLine = true;  // Default to using newline
 
         while (position < tokens.size()) {
             Token token = tokens.get(position);
@@ -962,7 +1044,8 @@ public class Parser {
                         output.append(value);
                     }
                 } else if (token.type == TokenType.OPERATOR && token.value.equals("&")) {
-                    // Do nothing for & operator
+                    // Check for & operator inside escape bracket
+                    useNewLine = false;
                 } else {
                     output.append(token.value);
                 }
@@ -1030,10 +1113,13 @@ public class Parser {
 
                         case OPERATOR:
                             if (token.value.equals("$")) {
+                                // Print with newline regardless of & operator
                                 System.out.println(output.toString());
                                 output = new StringBuilder();
+                                useNewLine = true; // Reset to default
                             } else if (token.value.equals("&")) {
-                                // Concatenation operator
+                                // Concatenation operator - disable newline
+                                useNewLine = false;
                             } else {
                                 output.append(token.value);
                             }
@@ -1051,7 +1137,11 @@ public class Parser {
 
         String finalOutput = output.toString();
         if (!finalOutput.isEmpty()) {
-            System.out.println(finalOutput);
+            if (useNewLine) {
+                System.out.println(finalOutput);
+            } else {
+                System.out.print(finalOutput);
+            }
         }
     }
 
@@ -1068,13 +1158,15 @@ public class Parser {
 
     private int getOperatorPrecedence(String operator) {
         if (operator.equals("unary-")) return 3;
-        if (operator.equals("*") || operator.equals("/")) return 2;
+        if (operator.equals("*") || operator.equals("/") || operator.equals("%")) return 2;
         if (operator.equals("+") || operator.equals("-")) return 1;
         return 0;
     }
 
     private boolean isValidOperator(String operator) {
-        return operator.equals("+") || operator.equals("-") || operator.equals("*") || operator.equals("/");
+        return operator.equals("+") || operator.equals("-") ||
+                operator.equals("*") || operator.equals("/") ||
+                operator.equals("%");
     }
 
     private double applyOperator(double a, double b, String operator) {
@@ -1085,9 +1177,277 @@ public class Parser {
             case "/":
                 if (b == 0) ErrorHandler.handleDivisionByZero();
                 return a / b;
+            case "%":  // Add modulo implementation
+                if (b == 0) ErrorHandler.handleDivisionByZero();
+                return a % b;
             default:
                 ErrorHandler.handleUnknownOperator(operator);
                 return 0;
+        }
+    }
+    // Updated parseForLoop method to handle nested structures properly
+    private void parseForLoop() {
+        position++; // Skip "ALANG SA"
+
+        consume(TokenType.LPAREN, "Expecting '(' after ALANG SA.");
+
+        // Handle initializer
+        Token initVarToken = null;
+        if (position < tokens.size() && tokens.get(position).type == TokenType.IDENTIFIER) {
+            initVarToken = tokens.get(position);
+            String varName = initVarToken.value;
+            position++; // Move past the identifier
+
+            consume(TokenType.OPERATOR, "Expect '=' in initializer.");
+
+            // Parse the initialization value
+            Token valueToken = tokens.get(position);
+            if (valueToken.type == TokenType.NUMERO || valueToken.type == TokenType.TIPIK) {
+                // Set the variable to this numeric value
+                Double value = Double.parseDouble(valueToken.value);
+                symbolTable.put(varName, value);
+                // Ensure we have a type for the variable
+                if (!variableTypes.containsKey(varName)) {
+                    variableTypes.put(varName, "NUMERO");
+                }
+                position++; // Move past the value
+            } else if (valueToken.type == TokenType.IDENTIFIER) {
+                // Set to another variable's value
+                if (!symbolTable.containsKey(valueToken.value)) {
+                    ErrorHandler.handleUndefinedVariable(valueToken.value);
+                    return;
+                }
+                symbolTable.put(varName, symbolTable.get(valueToken.value));
+                // Copy the variable type as well
+                if (!variableTypes.containsKey(varName)) {
+                    variableTypes.put(varName, variableTypes.get(valueToken.value));
+                }
+                position++; // Move past the identifier
+            } else {
+                ErrorHandler.handleExpectedValue(valueToken);
+                return;
+            }
+        } else {
+            ErrorHandler.handleExpectedInitialization();
+            return;
+        }
+
+        consume(TokenType.COMMA, "Expect ',' after initializer.");
+
+        // Save the condition expression start position
+        int conditionStart = position;
+        // Skip parsing condition for now, just record the tokens
+        List<Token> conditionTokens = new ArrayList<>();
+        int parenCount = 0;
+        while (position < tokens.size()) {
+            Token token = tokens.get(position);
+            if (token.type == TokenType.COMMA && parenCount == 0) {
+                break;
+            }
+            if (token.type == TokenType.LPAREN || token.value.equals("(")) {
+                parenCount++;
+            }
+            if (token.type == TokenType.RPAREN || token.value.equals(")")) {
+                parenCount--;
+                if (parenCount < 0) break; // End of outer parenthesis
+            }
+            conditionTokens.add(token);
+            position++;
+        }
+
+        consume(TokenType.COMMA, "Expect ',' after condition.");
+
+        // Handle the increment part
+        Token incrVarToken = null;
+        String incrementOp = null;
+        if (position >= tokens.size() || tokens.get(position).type != TokenType.IDENTIFIER) {
+            ErrorHandler.handleExpectedIdentifier();
+            return;
+        }
+        incrVarToken = tokens.get(position);
+        String incrementVarName = incrVarToken.value;
+        position++; // Move past the variable name
+
+        // Check for increment operator
+        if (position >= tokens.size()) {
+            ErrorHandler.handleExpectedIncrementOperator();
+            return;
+        }
+
+        Token opToken = tokens.get(position);
+        incrementOp = opToken.value;
+        if (!incrementOp.equals("++") && !incrementOp.equals("--")) {
+            ErrorHandler.handleExpectedIncrementOperator();
+            return;
+        }
+        position++; // Move past the operator
+
+        consume(TokenType.RPAREN, "Expect ')' after ALANG SA clauses.");
+        consume(TokenType.PUNDOK, "Expecting PUNDOK after ALANG SA.");
+        consume(TokenType.LEFTBRACE, "Expecting '{' after PUNDOK.");
+
+        // Save the loop body
+        List<Token> bodyTokens = new ArrayList<>();
+        int braceCount = 1;
+        int bodyStart = position;
+
+        while (position < tokens.size() && braceCount > 0) {
+            Token token = tokens.get(position);
+            if (token.type == TokenType.LEFTBRACE || token.value.equals("{")) {
+                braceCount++;
+            } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}")) {
+                braceCount--;
+                if (braceCount == 0) break; // Found the end of the loop body
+            }
+            bodyTokens.add(token);
+            position++;
+        }
+
+        consume(TokenType.RIGHTBRACE, "Expecting '}' at the end of PUNDOK block.");
+
+        // Loop execution
+        String initVarName = initVarToken.value;
+
+        while (true) {
+            // Evaluate condition
+            int savedPos = position;
+            position = conditionStart;
+            Object conditionResult = parseBooleanExpression();
+            position = savedPos;
+
+            if (!convertToBoolean(conditionResult)) {
+                break; // Exit loop if condition is false
+            }
+
+            // Execute loop body
+            int loopBodyPosition = bodyStart;
+            for (Token token : bodyTokens) {
+                tokens.set(loopBodyPosition, token);
+                loopBodyPosition++;
+            }
+
+            savedPos = position;
+            position = bodyStart;
+
+            // Parse the body as a block
+            int innerBraceCount = 1;
+            while (position < bodyStart + bodyTokens.size() && innerBraceCount > 0) {
+                Token token = tokens.get(position);
+
+                // Process each statement in the body
+                if (token.type == TokenType.KEYWORD) {
+                    switch (token.value) {
+                        case "MUGNA":
+                            parseVariableDeclaration();
+                            break;
+                        case "IPAKITA":
+                            parsePrintStatement();
+                            break;
+                        case "DAWAT":
+                            parseInputStatement();
+                            break;
+                        case "KUNG":
+                            parseConditionalStatement();
+                            break;
+                        case "ALANG SA":
+                            parseForLoop(); // Support nested loops
+                            break;
+                        default:
+                            position++;
+                            break;
+                    }
+                } else if (token.type == TokenType.IDENTIFIER) {
+                    parseAssignment();
+                } else if (token.type == TokenType.LEFTBRACE) {
+                    innerBraceCount++;
+                    position++;
+                } else if (token.type == TokenType.RIGHTBRACE) {
+                    innerBraceCount--;
+                    position++;
+                } else {
+                    position++;
+                }
+            }
+
+            // Increment the loop variable
+            if (incrementOp.equals("++")) {
+                Object currentValue = symbolTable.get(incrementVarName);
+                if (currentValue instanceof Double) {
+                    symbolTable.put(incrementVarName, (Double)currentValue + 1);
+                } else {
+                    ErrorHandler.handleTypeMismatchExpectedNumber(incrementVarName);
+                }
+            } else if (incrementOp.equals("--")) {
+                Object currentValue = symbolTable.get(incrementVarName);
+                if (currentValue instanceof Double) {
+                    symbolTable.put(incrementVarName, (Double)currentValue - 1);
+                } else {
+                    ErrorHandler.handleTypeMismatchExpectedNumber(incrementVarName);
+                }
+            }
+
+            position = savedPos;
+        }
+    }
+
+    // Helper method to consume expected tokens
+    private void consume(TokenType type, String errorMessage) {
+        if (position >= tokens.size() || tokens.get(position).type != type) {
+            if (position < tokens.size()) {
+                ErrorHandler.handleError(errorMessage, tokens.get(position));
+            } else {
+                ErrorHandler.handleError(errorMessage, null);
+            }
+            return;
+        }
+        position++; // Advance past the token
+    }
+
+    // For string-based token consumption
+    private void consume(String value, String errorMessage) {
+        if (position >= tokens.size() || !tokens.get(position).value.equals(value)) {
+            if (position < tokens.size()) {
+                ErrorHandler.handleError(errorMessage, tokens.get(position));
+            } else {
+                ErrorHandler.handleError(errorMessage, null);
+            }
+            return;
+        }
+        position++; // Advance past the token
+    }
+
+
+    private void parseIncrementDecrement(String varName) {
+        Token token = tokens.get(position);
+        // Check if it's ++ or --
+        if (token.value.equals("++")) {
+            // Increment operation
+            if (!variableTypes.containsKey(varName)) {
+                ErrorHandler.handleUndefinedVariable(varName);
+            }
+
+            Object currentValue = symbolTable.get(varName);
+            if (currentValue instanceof Double) {
+                symbolTable.put(varName, (Double)currentValue + 1);
+            } else {
+                ErrorHandler.handleTypeMismatchExpectedNumber(varName);
+            }
+            position++;
+        } else if (token.value.equals("--")) {
+            // Decrement operation
+            if (!variableTypes.containsKey(varName)) {
+                ErrorHandler.handleUndefinedVariable(varName);
+            }
+
+            Object currentValue = symbolTable.get(varName);
+            if (currentValue instanceof Double) {
+                symbolTable.put(varName, (Double)currentValue - 1);
+            } else {
+                ErrorHandler.handleTypeMismatchExpectedNumber(varName);
+            }
+            position++;
+        } else {
+            ErrorHandler.handleInvalidUpdateExpression();
         }
     }
 }
