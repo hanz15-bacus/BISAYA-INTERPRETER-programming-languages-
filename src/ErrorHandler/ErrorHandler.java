@@ -182,4 +182,10 @@ public class ErrorHandler {
     public static void handleExpectedKatapusan() {
         System.out.println("katapusan niga");
     }
+
+    public static void handleExpectedPundokBlock() {
+    }
+
+    public static void handleUnexpectedTokenAfterKung() {
+    }
 }

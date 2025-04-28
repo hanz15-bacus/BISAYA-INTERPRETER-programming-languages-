@@ -60,307 +60,162 @@ public class Parser {
         }
     }
 
-    private void parseConditionalStatement() {
-        boolean conditionExecuted = false; // Track if any block has been executed.
 
-        // First KUNG block
-        if (position >= tokens.size() || !tokens.get(position).value.equals("KUNG")) {
+
+    private boolean matchAndConsume(String expected) {
+        if (position < tokens.size() && tokens.get(position).value.equals(expected)) {
+            position++;
+            return true;
+        }
+        return false;
+    }
+
+    private boolean matchAndConsumeParen(char paren) {
+        if (position < tokens.size()) {
+            Token token = tokens.get(position);
+            if ((paren == '(' && (token.value.equals("(") || token.value.equals("\u0028"))) ||
+                    (paren == ')' && (token.value.equals(")") || token.value.equals("\u0029")))) {
+                position++;
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
+
+    private boolean matchAndConsumeBrace(char brace) {
+        if (position < tokens.size()) {
+            Token token = tokens.get(position);
+            if ((brace == '{' && token.type == TokenType.LEFTBRACE) ||
+                    (brace == '}' && token.type == TokenType.RIGHTBRACE)) {
+                position++;
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private void parseConditionalStatement() {
+        boolean conditionExecuted = false;
+
+        // Expect 'KUNG'
+        if (!matchAndConsume("KUNG")) {
             ErrorHandler.handleExpectedKungKeyword();
             return;
         }
-        position++; // Skip the 'KUNG' keyword
 
-
-
-        // Look for opening parenthesis with more flexible detection
-        boolean foundOpeningParenthesis = false;
-        if (position < tokens.size()) {
-            Token token = tokens.get(position);
-            if (token.type == TokenType.LPAREN ||
-                    token.value.equals("(") ||
-                    token.value.equals("\u0028")) { // Unicode for opening parenthesis
-                foundOpeningParenthesis = true;
-                position++; // Skip opening parenthesis
-            }
-        }
-
-        if (!foundOpeningParenthesis) {
+        if (!matchAndConsumeParen('(')) {
             ErrorHandler.handleExpectedParenthesisAfterKung();
             return;
         }
 
-        // Parse the condition inside the parentheses
         Object condition = parseBooleanExpression();
 
-        // Find the closing parenthesis - more flexible detection
-        boolean foundClosingParenthesis = false;
-        if (position < tokens.size()) {
-            Token token = tokens.get(position);
-            if (token.type == TokenType.RPAREN ||
-                    token.value.equals(")") ||
-                    token.value.equals("\u0029")) { // Unicode for closing parenthesis
-                foundClosingParenthesis = true;
-                position++; // Skip closing parenthesis
-            }
-        }
-
-        if (!foundClosingParenthesis) {
-            // Try to recover by skipping until we find something that looks like a closing parenthesis
-            while (position < tokens.size()) {
-                Token token = tokens.get(position);
-                position++;
-                if (token.type == TokenType.RPAREN ||
-                        token.value.equals(")") ||
-                        token.value.equals("\u0029")) { // Unicode for closing parenthesis
-                    foundClosingParenthesis = true;
-                    break;
-                }
-                // If we hit PUNDOK, assume missing closing parenthesis and move on
-                if (token.value.equals("PUNDOK")) {
-                    position--; // Go back to PUNDOK
-                    break;
-                }
-            }
-
-            if (!foundClosingParenthesis && position >= tokens.size()) {
-                ErrorHandler.handleExpectedClosingParenthesis();
-                return;
-            }
-        }
-
-        // Look for PUNDOK keyword
-        if (position >= tokens.size() || !tokens.get(position).value.equals("PUNDOK")) {
-            ErrorHandler.handleExpectedPundokKeyword();
-            return;
-        }
-        position++; // Skip 'PUNDOK'
-
-        // Look for opening brace - more flexible detection
-        boolean foundOpeningBrace = false;
-        if (position < tokens.size()) {
-            Token token = tokens.get(position);
-            if (token.type == TokenType.LEFTBRACE ||
-                    token.value.equals("{") ||
-                    token.value.equals("\u007B")) { // Unicode for opening brace
-                foundOpeningBrace = true;
-                position++; // Skip '{'
-            }
-        }
-
-        if (!foundOpeningBrace) {
-            ErrorHandler.handleExpectedOpeningBrace();
+        if (!matchAndConsumeParen(')')) {
+            ErrorHandler.handleExpectedClosingParenthesis();
             return;
         }
 
-        // Convert the condition to a boolean value
+        if (!matchAndConsume("PUNDOK") || !matchAndConsumeBrace('{')) {
+            ErrorHandler.handleExpectedPundokBlock();
+            return;
+        }
+
         boolean conditionValue = convertToBoolean(condition);
 
-        int braceCount = 1; // Track braces to handle nested blocks
         if (conditionValue) {
-            // Execute the block if the condition is true
-            while (position < tokens.size() && braceCount > 0) {
-                Token token = tokens.get(position);
-
-                if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
-                    braceCount++;
-                    position++;
-                } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
-                    braceCount--;
-                    position++;
-                    if (braceCount == 0) break;
-                } else {
-                    parseStatement(token);
-                }
-            }
-            conditionExecuted = true; // Mark that a block has been executed
+            executeBlock();
+            conditionExecuted = true;
         } else {
-            // Skip the block if the condition is false
-            while (position < tokens.size() && braceCount > 0) {
-                Token token = tokens.get(position);
-                if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
-                    braceCount++;
-                } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
-                    braceCount--;
-                }
-                position++;
-            }
+            skipBlock();
         }
 
-        // Process KUNG DILI blocks
-        while (!conditionExecuted && position < tokens.size() &&
-                tokens.get(position).value.equals("KUNG") &&
-                position + 1 < tokens.size() &&
-                tokens.get(position + 1).value.equals("DILI")) {
-
-            position += 2; // Skip 'KUNG DILI'
-
-
-
-            // Look for opening parenthesis - more flexible detection
-            foundOpeningParenthesis = false;
-            if (position < tokens.size()) {
-                Token token = tokens.get(position);
-                if (token.type == TokenType.LPAREN ||
-                        token.value.equals("(") ||
-                        token.value.equals("\u0028")) { // Unicode for opening parenthesis
-                    foundOpeningParenthesis = true;
-                    position++; // Skip opening parenthesis
-                }
-            }
-
-            if (!foundOpeningParenthesis) {
-                ErrorHandler.handleExpectedParenthesisAfterKungDili();
-                return;
-            }
-
-            // Parse the condition inside the parentheses
-            Object nextCondition = parseBooleanExpression();
-
-            // Find the closing parenthesis - more flexible detection
-            foundClosingParenthesis = false;
-            if (position < tokens.size()) {
-                Token token = tokens.get(position);
-                if (token.type == TokenType.RPAREN ||
-                        token.value.equals(")") ||
-                        token.value.equals("\u0029")) { // Unicode for closing parenthesis
-                    foundClosingParenthesis = true;
-                    position++; // Skip closing parenthesis
-                }
-            }
-
-            if (!foundClosingParenthesis) {
-                // Try to recover by skipping until we find something that looks like a closing parenthesis
-                while (position < tokens.size()) {
-                    Token token = tokens.get(position);
-                    position++;
-                    if (token.type == TokenType.RPAREN ||
-                            token.value.equals(")") ||
-                            token.value.equals("\u0029")) { // Unicode for closing parenthesis
-                        foundClosingParenthesis = true;
-                        break;
+        // Handle zero or more 'KUNG DILI'
+        while (position < tokens.size()) {
+            if (matchAndConsume("KUNG")) {
+                if (matchAndConsume("DILI")) {
+                    if (!matchAndConsumeParen('(')) {
+                        ErrorHandler.handleExpectedParenthesisAfterKungDili();
+                        return;
                     }
-                    // If we hit PUNDOK, assume missing closing parenthesis and move on
-                    if (token.value.equals("PUNDOK")) {
-                        position--; // Go back to PUNDOK
-                        break;
-                    }
-                }
 
-                if (!foundClosingParenthesis && position >= tokens.size()) {
-                    ErrorHandler.handleExpectedClosingParenthesis();
+                    Object nextCondition = parseBooleanExpression();
+
+                    if (!matchAndConsumeParen(')')) {
+                        ErrorHandler.handleExpectedClosingParenthesis();
+                        return;
+                    }
+
+                    if (!matchAndConsume("PUNDOK") || !matchAndConsumeBrace('{')) {
+                        ErrorHandler.handleExpectedPundokBlock();
+                        return;
+                    }
+
+                    boolean nextConditionValue = convertToBoolean(nextCondition);
+
+                    if (!conditionExecuted && nextConditionValue) {
+                        executeBlock();
+                        conditionExecuted = true;
+                    } else {
+                        skipBlock();
+                    }
+                } else if (matchAndConsume("WALA")) {
+                    if (!matchAndConsume("PUNDOK") || !matchAndConsumeBrace('{')) {
+                        ErrorHandler.handleExpectedPundokBlock();
+                        return;
+                    }
+
+                    if (!conditionExecuted) {
+                        executeBlock();
+                    } else {
+                        skipBlock();
+                    }
+                    break; // after KUNG WALA, no more branches
+                } else {
+                    ErrorHandler.handleUnexpectedTokenAfterKung();
                     return;
                 }
-            }
-
-            // Ensure that we have the 'PUNDOK' keyword before the block
-            if (position >= tokens.size() || !tokens.get(position).value.equals("PUNDOK")) {
-                ErrorHandler.handleExpectedPundokKeyword();
-                return;
-            }
-            position++; // Skip 'PUNDOK'
-
-            // Look for opening brace - more flexible detection
-            foundOpeningBrace = false;
-            if (position < tokens.size()) {
-                Token token = tokens.get(position);
-                if (token.type == TokenType.LEFTBRACE ||
-                        token.value.equals("{") ||
-                        token.value.equals("\u007B")) { // Unicode for opening brace
-                    foundOpeningBrace = true;
-                    position++; // Skip '{'
-                }
-            }
-
-            if (!foundOpeningBrace) {
-                ErrorHandler.handleExpectedOpeningBrace();
-                return;
-            }
-
-            // Convert the next condition to a boolean value
-            boolean nextConditionValue = convertToBoolean(nextCondition);
-            if (nextConditionValue) {
-                // Execute the block if the next condition is true
-                braceCount = 1;
-                while (position < tokens.size() && braceCount > 0) {
-                    Token token = tokens.get(position);
-
-                    if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
-                        braceCount++;
-                        position++;
-                    } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
-                        braceCount--;
-                        position++;
-                        if (braceCount == 0) break;
-                    } else {
-                        parseStatement(token);
-                    }
-                }
-                conditionExecuted = true; // Mark that a block has been executed
             } else {
-                // Skip the block if the condition is false
-                braceCount = 1;
-                while (position < tokens.size() && braceCount > 0) {
-                    Token token = tokens.get(position);
-                    if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
-                        braceCount++;
-                    } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
-                        braceCount--;
-                    }
-                    position++;
-                }
+                break;
             }
         }
+    }
 
-        // KUNG WALA block
-        if (!conditionExecuted && position < tokens.size() &&
-                tokens.get(position).value.equals("KUNG") &&
-                position + 1 < tokens.size() &&
-                tokens.get(position + 1).value.equals("WALA")) {
 
-            position += 2; // Skip 'KUNG WALA'
+    // Helper to execute a block of code
+    private void executeBlock() {
+        int braceCount = 1;
+        while (position < tokens.size() && braceCount > 0) {
+            Token token = tokens.get(position);
 
-            // Ensure that we have the 'PUNDOK' keyword before the block
-            if (position >= tokens.size() || !tokens.get(position).value.equals("PUNDOK")) {
-                ErrorHandler.handleExpectedPundokKeyword();
-                return;
-            }
-            position++; // Skip 'PUNDOK'
-
-            // Look for opening brace - more flexible detection
-            foundOpeningBrace = false;
-            if (position < tokens.size()) {
-                Token token = tokens.get(position);
-                if (token.type == TokenType.LEFTBRACE ||
-                        token.value.equals("{") ||
-                        token.value.equals("\u007B")) { // Unicode for opening brace
-                    foundOpeningBrace = true;
-                    position++; // Skip '{'
-                }
-            }
-
-            if (!foundOpeningBrace) {
-                ErrorHandler.handleExpectedOpeningBrace();
-                return;
-            }
-
-            // Execute the block since this is the fallback condition (no condition executed yet)
-            braceCount = 1;
-            while (position < tokens.size() && braceCount > 0) {
-                Token token = tokens.get(position);
-
-                if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
-                    braceCount++;
-                    position++;
-                } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
-                    braceCount--;
-                    position++;
-                    if (braceCount == 0) break;
-                } else {
-                    parseStatement(token);
-                }
+            if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
+                braceCount++;
+                position++;
+            } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
+                braceCount--;
+                position++;
+            } else {
+                parseStatement(token);
             }
         }
+    }
 
+    // Helper to skip a block if condition is false
+    private void skipBlock() {
+        int braceCount = 1;
+        while (position < tokens.size() && braceCount > 0) {
+            Token token = tokens.get(position);
+
+            if (token.type == TokenType.LEFTBRACE || token.value.equals("{") || token.value.equals("\u007B")) {
+                braceCount++;
+            } else if (token.type == TokenType.RIGHTBRACE || token.value.equals("}") || token.value.equals("\u007D")) {
+                braceCount--;
+            }
+            position++;
+        }
     }
 
     private boolean convertToBoolean(Object value) {
