@@ -5,175 +5,172 @@ import lexer.TokenType;
 
 public class ErrorHandler {
     public static void handleUnexpectedKeyword(String keyword) {
-        throw new RuntimeException("Unexpected keyword: " + keyword);
+        System.out.println("Error: Unexpected keyword '" + keyword + "' encountered.");
     }
 
     public static void handleExpectedKeyword(String keyword) {
-        throw new RuntimeException("Expected keyword: " + keyword);
+        System.out.println("Error: Expected keyword '" + keyword + "' was not found.");
     }
 
 
     public static void handleUnexpectedToken(TokenType type, String value) {
-        throw new RuntimeException("Unexpected token: " + type + " with value: " + value);
+        System.out.println("Error: Unexpected token of type '" + type + "' with value '" + value + "' encountered.");
     }
 
     public static void handleExpectedTypeAfterKeyword(String keyword) {
-        throw new RuntimeException("Expected type after " + keyword);
+        System.out.println("Error: Expected a data type specification after the keyword '" + keyword + "'.");
     }
 
     public static void handleExpectedIdentifier() {
-        throw new RuntimeException("Expected identifier");
+        System.out.println("Error: Expected an identifier (variable name) at this location.");
     }
 
     public static void handleUndefinedVariable(String varName) {
-        throw new RuntimeException("Undefined variable: " + varName + ". Declare it before use.");
+        System.out.println("Error: Undefined variable '" + varName + "'. Please declare it before using it.");
     }
 
     public static void handleExpectedEqualsAfterIdentifier() {
-        throw new RuntimeException("Expected '=' after identifier");
+        System.out.println("Error: Expected the assignment operator '=' after the identifier.");
     }
 
     public static void handleTypeMismatchInAssignment() {
-        throw new RuntimeException("Type mismatch in assignment");
+        System.out.println("Error: Type mismatch encountered during assignment. The value being assigned is not compatible with the variable's type.");
     }
 
     public static void handleVariableHasNoValue(String varName) {
-        throw new RuntimeException("Variable has no value: " + varName);
+        System.out.println("Error: Variable '" + varName + "' has not been assigned a value before being used.");
     }
 
     public static void handleInvalidBooleanLiteral(String value) {
-        throw new RuntimeException("Invalid boolean literal: " + value);
+        System.out.println("Error: Invalid boolean literal '" + value + "'. Expected 'TINUOD' or 'BAW'");
     }
 
     public static void handleExpectedValue(Token token) {
-        throw new RuntimeException("Expected value, but got: " + token.value +
-                " (lexer.Token type: " + token.type + ")");
+        System.out.println("Error: Expected a value but encountered '" + token.value + "' (Token type: " + token.type + ").");
     }
 
     public static void handleMismatchedParentheses() {
-        throw new RuntimeException("Mismatched parentheses");
+        System.out.println("Error: Mismatched parentheses found in the expression.");
     }
 
     public static void handleMissingOperandForNot() {
-        throw new RuntimeException("Missing operand for 'DILI'");
+        System.out.println("Error: The unary operator 'DILI' requires an operand.");
     }
 
     public static void handleInsufficientOperandsForOperator(String op) {
-        throw new RuntimeException("Insufficient operands for operator " + op);
+        System.out.println("Error: Insufficient operands provided for the operator '" + op + "'.");
     }
 
     public static void handleInvalidOperatorForBooleanComparison(String op) {
-        throw new RuntimeException("Invalid operator for boolean comparison: " + op);
+        System.out.println("Error: Invalid operator '" + op + "' used for boolean comparison. Please use valid boolean operators.");
     }
 
     public static void handleInvalidCharacterExpression() {
-        throw new RuntimeException("Invalid character expression");
+        System.out.println("Error: Invalid character expression. Ensure it is correctly formatted.");
     }
 
     public static void handleTypeMismatchExpectedCharacter() {
-        throw new RuntimeException("Type mismatch: expected character value");
+        System.out.println("Error: Type mismatch. Expected a character value at this location.");
     }
 
     public static void handleCannotConvertStringToNumber(String val) {
-        throw new RuntimeException("Cannot convert string to number: " + val);
+        System.out.println("Error: Cannot convert the string value '" + val + "' to a numerical type.");
     }
 
     public static void handleTypeMismatchExpectedNumber(String className) {
-        throw new RuntimeException("Type mismatch: expected number, got " + className);
+        System.out.println("Error: Type mismatch. Expected a numerical value but found a value of type '" + className + "'.");
     }
 
     public static void handleExpectedNumberOrParenthesis(Token token) {
-        throw new RuntimeException("Expected number, variable, or '(' or '[' but found: " + token.value);
+        System.out.println("Error: Expected a number, variable, opening parenthesis '(', or opening square bracket '[' but found '" + token.value + "'.");
     }
 
     public static void handleInvalidExpressionTooManyOperands() {
-        throw new RuntimeException("Invalid expression: too many operands");
+        System.out.println("Error: Invalid expression. Too many operands provided, resulting in an ambiguous evaluation.");
     }
 
     public static void handleDivisionByZero() {
-        throw new RuntimeException("Division by zero");
+        System.out.println("Error: Attempted division by zero. This operation is mathematically undefined.");
     }
 
     public static void handleUnknownOperator(String operator) {
-        throw new RuntimeException("Unknown operator: " + operator);
+        System.out.println("Error: Unknown operator '" + operator + "' encountered.");
     }
 
     public static void handleExpectedColonAfterKeyword(String keyword) {
-        throw new RuntimeException("Expected ':' after " + keyword);
+        System.out.println("Error: Expected a colon ':' after the keyword '" + keyword + "'.");
     }
 
     public static void handleInvalidExpression(String message) {
-        throw new RuntimeException("Invalid expression: " + message);
+        System.out.println("Error: Invalid expression: " + message);
     }
 
     public static void handleInvalidPrintStatement() {
-        throw new RuntimeException("Invalid print statement");
+        System.out.println("Error: Syntax error in the 'IMPRINT' statement. Ensure the correct format is used.");
     }
     public static void handleInvalidInputStatement() {
-        throw new RuntimeException("Syntax Error: Invalid DAWAT statement. Expected at least one variable identifier");
+        System.out.println("Syntax Error: Invalid 'DAWAT' statement. Expected at least one variable identifier to receive input.");
     }
     public static void handleInsufficientInputValues(int expected, int actual) {
-        throw new RuntimeException("Input Error: Expected " + expected + " values but received only " + actual);
+        System.out.println("Input Error: Expected " + expected + " input values but received only " + actual + ".");
     }
 
     public static void handleInvalidInputForType(String varName, String varType, String value) {
-        throw new RuntimeException("Type Error: Cannot convert '" + value + "' to type " + varType + " for variable '" + varName + "'");
+        System.out.println("Type Error: Cannot convert the input value '" + value + "' to the expected type '" + varType + "' for the variable '" + varName + "'.");
     }
 
     public static void handleInvalidInputFormat(String varName, String varType, String inputValue) {
-        throw new RuntimeException("sayop boang");
+        System.out.println("Syntax Error: Invalid input format provided for variable '" + varName + "' of type '" + varType + "'. The input '" + inputValue + "' does not match the expected format.");
     }
 
     public static void handleInvalidBooleanInput(String inputValue) {
-        throw new RuntimeException("sayop boang");
-
+        System.out.println("Syntax Error: Invalid boolean input '" + inputValue + "'. Please enter 'TINUOD' or 'BAW'.");
     }
     public static void handleExpectedClosingBrace() {
-        throw new SyntaxErrorException("❌ Expected closing brace '}'");
+        System.out.println("Syntax Error: Expected closing brace '}' to complete the code block.");
     }
 
     public static void handleExpectedOpeningBrace() {
-        throw new SyntaxErrorException("❌ Expected opening brace '{'");
+        System.out.println("Syntax Error: Expected opening brace '{' to begin a code block.");
     }
 
     public static void handleExpectedPundokAfterCondition() {
-        throw new SyntaxErrorException("❌ Expected keyword 'PUNDOK' after condition");
+        System.out.println("Syntax Error: Expected the keyword 'PUNDOK' to introduce the code block after the conditional statement.");
     }
 
     public static void handleExpectedConditionAfterKung() {
-        throw new SyntaxErrorException("❌ Expected condition after keyword 'KUNG'");
+        System.out.println("Syntax Error: Expected a condition (an expression that evaluates to 'TINUOD' or 'BAW') after the keyword 'KUNG'.");
     }
 
     public static void handleInvalidConditionType() {
-        throw new RuntimeException("Invalid condition type: Conditions must evaluate to a boolean value (TINUOD).");
+        System.out.println("Type Error: Invalid condition type. Conditions must evaluate to a boolean value ('TINUOD' or 'BAW').");
     }
 
     public static void handleExpectedParenthesisAfterKung() {
-        throw new RuntimeException("Syntax error: Expected '(' after 'KUNG' keyword.");
+        System.out.println("Syntax error: Expected an opening parenthesis '(' after the 'KUNG' keyword to enclose the condition.");
     }
 
     public static void handleExpectedSymbolAfterToken(String paren, String keyword) {
-        throw new RuntimeException("Syntax error: Expected '"+ paren +"' after '"+ keyword +"' keyword.");
+        System.out.println("Syntax error: Expected '" + paren + "' after the keyword '" + keyword + "'.");
     }
 
     public static void handleNonBooleanCondition() {
-        throw new RuntimeException("Condition type error: The expression inside 'KUNG' must be a boolean.");
+        System.out.println("Type error: The expression inside the 'KUNG' statement must evaluate to a boolean ('TINUOD' or 'BAW').");
     }
 
     public static void handleExpectedPundokKeyword() {
-        throw new RuntimeException("Syntax error: Expected 'PUNDOK' keyword to start a code block after condition.");
+        System.out.println("Syntax error: Expected the keyword 'PUNDOK' to start a code block following a conditional statement.");
     }
 
     public static void handleExpectedClosingParenthesis() {
-        throw new RuntimeException("Syntax error: Missing closing ')' in condition.");
+        System.out.println("Syntax error: Missing closing parenthesis ')' at the end of the condition.");
     }
 
     public static void handleMissingClosingBrace() {
-        throw new RuntimeException("Syntax error: Missing closing '}' for code block.");
+        System.out.println("Syntax error: Missing closing brace '}' to terminate the current code block.");
     }
 
     public static void handleUnexpectedToken(Token token) {
-        throw new RuntimeException("Unexpected token: '" + token.value + "' of type " + token.type + ".");
+        System.out.println("Syntax error: Unexpected token '" + token.value + "' of type " + token.type + " encountered.");
     }
-
 }
