@@ -1,7 +1,6 @@
 SUGOD
-    MUGNA NUMERO ctr = 0
-    ALANG SA(ctr = 0, ctr < 10, ctr++)
-    PUNDOK{
-        IPAKITA: ctr
-    }
+	MUGNA NUMERO a
+	ALANG SA (a=10, a>=0, a--)
+	PUNDOK{
+	}
 KATAPUSAN
